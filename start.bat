@@ -6,7 +6,7 @@ echo Starting Event Trigger Platform...
 echo.
 echo This will start:
 echo   - MySQL (localhost:3306)
-echo   - Kafka + Zookeeper
+echo   - Kafka (KRaft mode)
 echo   - API Server (localhost:8080)
 echo   - Scheduler
 echo   - Workers (2 replicas)
