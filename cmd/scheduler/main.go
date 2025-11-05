@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -9,5 +10,5 @@ import (
 
 func main() {
 	engine := scheduler.NewEngine(time.Second * 5)
-	log.Fatal(engine.Run())
+	log.Fatal(engine.Run(context.Background()))
 }
