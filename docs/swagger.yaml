@@ -1,0 +1,622 @@
+basePath: /api/v1
+definitions:
+  CreateTriggerRequest:
+    properties:
+      config:
+        type: object
+      type:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
+        enum:
+        - scheduled
+        - api
+        example: scheduled
+    required:
+    - config
+    - type
+    type: object
+  EventLogListResponse:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/EventLogResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
+    type: object
+  EventLogResponse:
+    properties:
+      created_at:
+        example: "2025-11-05T10:30:00Z"
+        type: string
+      error_message:
+        example: connection timeout
+        type: string
+      execution_status:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.ExecutionStatus'
+        example: success
+      fired_at:
+        example: "2025-11-05T10:30:00Z"
+        type: string
+      id:
+        example: 660e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_test_run:
+        example: false
+        type: boolean
+      payload:
+        type: object
+      retention_status:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.RetentionStatus'
+        example: active
+      source:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.EventSource'
+        example: scheduled
+      trigger_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      trigger_type:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
+        example: scheduled
+    type: object
+  HealthResponse:
+    properties:
+      service:
+        example: event-trigger-platform
+        type: string
+      status:
+        example: ok
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  MetricsResponse:
+    properties:
+      events_active_count:
+        example: 45
+        type: integer
+      events_archived_count:
+        example: 1205
+        type: integer
+      published_events_count:
+        example: 1250
+        type: integer
+      trigger_count_api:
+        example: 18
+        type: integer
+      trigger_count_scheduled:
+        example: 32
+        type: integer
+      trigger_fire_latency_p50:
+        example: 3
+        type: integer
+      trigger_fire_latency_p95:
+        example: 7
+        type: integer
+      trigger_fire_latency_p99:
+        example: 9
+        type: integer
+    type: object
+  Pagination:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      total_pages:
+        example: 5
+        type: integer
+      total_records:
+        example: 100
+        type: integer
+    type: object
+  TriggerListResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/Pagination'
+      triggers:
+        items:
+          $ref: '#/definitions/TriggerResponse'
+        type: array
+    type: object
+  TriggerResponse:
+    properties:
+      config:
+        type: object
+      created_at:
+        example: "2025-11-05T10:00:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      next_fire_time:
+        example: "2025-11-05T15:00:00Z"
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerStatus'
+        example: active
+      type:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
+        example: scheduled
+      updated_at:
+        example: "2025-11-05T10:00:00Z"
+        type: string
+      webhook_url:
+        example: http://localhost:8080/api/v1/webhook/550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  UpdateTriggerRequest:
+    properties:
+      config:
+        type: object
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerStatus'
+        enum:
+        - active
+        - inactive
+        example: active
+    type: object
+  WebhookPayload:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      trigger_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse:
+    properties:
+      details: {}
+      error:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+  github_com_dhima_event-trigger-platform_internal_models.EventSource:
+    enum:
+    - api
+    - scheduled
+    - manual-test
+    type: string
+    x-enum-varnames:
+    - EventSourceAPI
+    - EventSourceScheduled
+    - EventSourceManualTest
+  github_com_dhima_event-trigger-platform_internal_models.ExecutionStatus:
+    enum:
+    - success
+    - failure
+    type: string
+    x-enum-varnames:
+    - ExecutionStatusSuccess
+    - ExecutionStatusFailure
+  github_com_dhima_event-trigger-platform_internal_models.RetentionStatus:
+    enum:
+    - active
+    - archived
+    - deleted
+    type: string
+    x-enum-varnames:
+    - RetentionStatusActive
+    - RetentionStatusArchived
+    - RetentionStatusDeleted
+  github_com_dhima_event-trigger-platform_internal_models.TriggerStatus:
+    enum:
+    - active
+    - inactive
+    type: string
+    x-enum-varnames:
+    - TriggerStatusActive
+    - TriggerStatusInactive
+  github_com_dhima_event-trigger-platform_internal_models.TriggerType:
+    enum:
+    - scheduled
+    - api
+    type: string
+    x-enum-varnames:
+    - TriggerTypeScheduled
+    - TriggerTypeAPI
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: https://github.com/Dhi13man/event-trigger-platform
+  description: |-
+    Production-ready event trigger management system supporting scheduled and API-triggered events with Kafka integration.
+
+    ## Features
+    - **Scheduled Triggers**: One-time and recurring schedules with ISO 8601 and interval-based scheduling
+    - **API Triggers**: Webhook-based triggers with JSON schema validation
+    - **Event Logs**: Comprehensive logging with retention lifecycle (active → archived → deleted)
+    - **Kafka Integration**: Reliable event publishing for external consumers
+
+    ## Architecture
+    This platform is an event publisher, not an executor. We publish trigger events to Kafka, and external consumers (owned by users) subscribe and execute business logic.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Event Trigger Platform API
+  version: "1.0"
+paths:
+  /api/v1/events:
+    get:
+      description: Retrieves event logs with filtering and pagination. By default
+        shows only active events (last 2 hours).
+      parameters:
+      - description: Filter by trigger ID
+        in: query
+        name: trigger_id
+        type: string
+      - default: active
+        description: Filter by retention status
+        enum:
+        - active
+        - archived
+        in: query
+        name: retention_status
+        type: string
+      - description: Filter by execution status
+        enum:
+        - success
+        - failure
+        in: query
+        name: execution_status
+        type: string
+      - description: Filter by event source
+        enum:
+        - api
+        - scheduled
+        - manual-test
+        in: query
+        name: source
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/EventLogListResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: List event logs
+      tags:
+      - Events
+  /api/v1/events/{id}:
+    get:
+      description: Retrieves details of a specific event log by ID, including full
+        payload and error message if failed
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/EventLogResponse'
+        "404":
+          description: Event not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Get event log details
+      tags:
+      - Events
+  /api/v1/triggers:
+    get:
+      description: Retrieves a list of triggers with optional filtering and pagination
+      parameters:
+      - description: Filter by trigger type
+        enum:
+        - scheduled
+        - api
+        in: query
+        name: type
+        type: string
+      - description: Filter by trigger status
+        enum:
+        - active
+        - inactive
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/TriggerListResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: List all triggers
+      tags:
+      - Triggers
+    post:
+      consumes:
+      - application/json
+      description: Creates a scheduled or API trigger with configuration. For API
+        triggers, returns a webhook URL.
+      parameters:
+      - description: Trigger configuration
+        in: body
+        name: trigger
+        required: true
+        schema:
+          $ref: '#/definitions/CreateTriggerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/TriggerResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Create a new trigger
+      tags:
+      - Triggers
+  /api/v1/triggers/{id}:
+    delete:
+      description: Deletes a trigger. Event logs are not deleted and follow their
+        retention lifecycle.
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Trigger deleted successfully
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Delete a trigger
+      tags:
+      - Triggers
+    get:
+      description: Retrieves details of a specific trigger by ID
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/TriggerResponse'
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Get trigger details
+      tags:
+      - Triggers
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing trigger's status or configuration. Only affects
+        future trigger firings.
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated trigger data
+        in: body
+        name: trigger
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateTriggerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/TriggerResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Update a trigger
+      tags:
+      - Triggers
+  /api/v1/triggers/{id}/test:
+    post:
+      description: Fires a trigger once for testing. Creates an event log with is_test_run=true.
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Test trigger fired successfully
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse'
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Test a trigger (manual/test run)
+      tags:
+      - Triggers
+  /api/v1/webhook/{trigger_id}:
+    post:
+      consumes:
+      - application/json
+      description: Receives a payload from external systems, validates it against
+        the trigger's JSON schema, and fires the trigger
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: trigger_id
+        required: true
+        type: string
+      - description: Webhook payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/WebhookPayload'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Webhook accepted and trigger queued
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse'
+        "400":
+          description: Invalid payload or schema validation failed
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Receive webhook payload for API trigger
+      tags:
+      - Webhooks
+  /health:
+    get:
+      description: Returns the health status of the API service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/HealthResponse'
+      summary: Health check endpoint
+      tags:
+      - System
+  /metrics:
+    get:
+      description: Returns metrics about trigger execution, event counts, and performance
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/MetricsResponse'
+      summary: Get platform metrics
+      tags:
+      - System
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    description: Optional API key authentication for management operations
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

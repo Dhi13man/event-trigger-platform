@@ -1,11 +1,10 @@
--- Create event_logs table
 CREATE TABLE IF NOT EXISTS event_logs (
     id VARCHAR(36) PRIMARY KEY,
     trigger_id VARCHAR(36) NULL,  -- NULL for manual/test runs without persisted trigger
-    trigger_type ENUM('scheduled', 'api') NOT NULL,
+    trigger_type ENUM('webhook', 'time_scheduled', 'cron_scheduled') NOT NULL,
     fired_at DATETIME NOT NULL,
     payload JSON NULL,
-    source ENUM('api', 'scheduled', 'manual-test') NOT NULL,
+    source ENUM('webhook', 'scheduler', 'manual-test') NOT NULL,
     execution_status ENUM('success', 'failure') NOT NULL DEFAULT 'success',
     error_message TEXT NULL,  -- Populated on failure
     retention_status ENUM('active', 'archived', 'deleted') NOT NULL DEFAULT 'active',
