@@ -1,9 +1,7 @@
 # Multi-stage Dockerfile for Event Trigger Platform
 # Optimized for production with minimal image size and security best practices
 
-# ============================================
 # Stage 1: Builder
-# ============================================
 FROM golang:1.22.3-alpine AS builder
 
 # Install build dependencies
@@ -30,9 +28,7 @@ ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -trimpath -ldflags="-s -w" -o /build/bin/api ./cmd/api && \
     go build -trimpath -ldflags="-s -w" -o /build/bin/scheduler ./cmd/scheduler
 
-# ============================================
 # Stage 2: Runtime - API Server
-# ============================================
 FROM alpine:3.19 AS api
 
 # Install runtime dependencies
@@ -56,9 +52,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 ENTRYPOINT ["/app/api"]
 
-# ============================================
 # Stage 3: Runtime - Scheduler
-# ============================================
 FROM alpine:3.19 AS scheduler
 
 RUN apk add --no-cache ca-certificates tzdata && \

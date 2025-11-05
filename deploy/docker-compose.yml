@@ -1,9 +1,7 @@
 version: '3.9'
 
 services:
-  # ============================================
   # MySQL Database
-  # ============================================
   mysql:
     image: mysql:8.0
     container_name: event-trigger-mysql
@@ -28,9 +26,7 @@ services:
       - event-trigger-network
     restart: unless-stopped
 
-  # ============================================
-  # Kafka Message Broker (KRaft Mode - No Zookeeper!)
-  # ============================================
+  # Kafka Message Broker (KRaft mode, no Zookeeper)
   kafka:
     image: apache/kafka-native:3.8.1
     container_name: event-trigger-kafka
@@ -82,9 +78,7 @@ services:
       - event-trigger-network
     restart: unless-stopped
 
-  # ============================================
   # API Server
-  # ============================================
   api:
     build:
       context: ..
@@ -114,9 +108,7 @@ services:
       - event-trigger-network
     restart: unless-stopped
 
-  # ============================================
-  # Scheduler (Polls for due triggers)
-  # ============================================
+  # Scheduler (polls for due triggers)
   scheduler:
     build:
       context: ..
@@ -138,9 +130,7 @@ services:
       - event-trigger-network
     restart: unless-stopped
 
-  # ============================================
-  # Retention Manager - NOT NEEDED!
-  # ============================================
+  # Retention Manager - NOT NEEDED
   # Retention is handled by MySQL Event Scheduler (see db/migrations/004_setup_retention_events.sql)
   # This service is commented out because MySQL handles retention more efficiently:
   # - Archive events: Every 5 minutes (active → archived after 2 hours)
@@ -167,18 +157,14 @@ services:
   #     - event-trigger-network
   #   restart: unless-stopped
 
-# ============================================
-# Volumes for Data Persistence
-# ============================================
+# Volumes for data persistence
 volumes:
   mysql_data:
     driver: local
   kafka_data:
     driver: local
 
-# ============================================
-# Network Configuration
-# ============================================
+# Network configuration
 networks:
   event-trigger-network:
     driver: bridge
