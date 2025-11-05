@@ -34,6 +34,7 @@ MYSQL_ROOT_PASSWORD=your_secure_root_password
 MYSQL_DATABASE=event_trigger
 MYSQL_USER=appuser
 MYSQL_PASSWORD=your_secure_app_password
+MYSQL_PORT=3306
 
 # Kafka Configuration
 KAFKA_PORT=9092
