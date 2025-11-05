@@ -1,0 +1,180 @@
+version: '3.9'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: event-trigger-mysql
+    hostname: mysql
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - event-trigger-network
+    restart: unless-stopped
+
+  # Kafka Message Broker (KRaft mode, no Zookeeper)
+  kafka:
+    image: apache/kafka-native:3.8.1
+    container_name: event-trigger-kafka
+    hostname: kafka
+    env_file:
+      - .env
+    ports:
+      - "${KAFKA_EXTERNAL_PORT}:9092"
+      - "${KAFKA_INTERNAL_PORT}:29092"
+    environment:
+      # KRaft Mode Configuration
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID}@kafka:${KAFKA_CONTROLLER_PORT}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Listener Configuration
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Cluster Configuration
+      CLUSTER_ID: ${CLUSTER_ID}
+
+      # Topic & Replication Settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+
+      # Performance & Auto-creation
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 3
+
+      # Retention & Logging
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - event-trigger-network
+    restart: unless-stopped
+
+  # API Server
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: api
+    container_name: event-trigger-api
+    hostname: api
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "${API_PORT}:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      API_PORT: ${API_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - event-trigger-network
+    restart: unless-stopped
+
+  # Scheduler (polls for due triggers)
+  scheduler:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: scheduler
+    container_name: event-trigger-scheduler
+    hostname: scheduler
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      SCHEDULER_INTERVAL: ${SCHEDULER_INTERVAL}
+      LOG_LEVEL: ${LOG_LEVEL}
+    networks:
+      - event-trigger-network
+    restart: unless-stopped
+
+  # Retention Manager - NOT NEEDED
+  # Retention is handled by MySQL Event Scheduler (see db/migrations/004_setup_retention_events.sql)
+  # This service is commented out because MySQL handles retention more efficiently:
+  # - Archive events: Every 5 minutes (active → archived after 2 hours)
+  # - Delete events: Every 10 minutes (delete after 48 hours total)
+  # - Cleanup idempotency keys: Daily (delete after 7 days)
+  #
+  # To enable service-based retention instead, uncomment below:
+  #
+  # retention:
+  #   build:
+  #     context: ..
+  #     dockerfile: Dockerfile
+  #     target: retention
+  #   container_name: event-trigger-retention
+  #   hostname: retention
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     RETENTION_INTERVAL: ${RETENTION_INTERVAL}
+  #     LOG_LEVEL: ${LOG_LEVEL}
+  #   networks:
+  #     - event-trigger-network
+  #   restart: unless-stopped
+
+# Volumes for data persistence
+volumes:
+  mysql_data:
+    driver: local
+  kafka_data:
+    driver: local
+
+# Network configuration
+networks:
+  event-trigger-network:
+    driver: bridge
