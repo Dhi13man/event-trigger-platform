@@ -5,6 +5,7 @@ This directory contains Docker Compose configuration for running the Event Trigg
 ## Quick Start
 
 1. **Copy the example environment file:**
+
    ```bash
    cd deploy
    cp .env.example .env
@@ -13,6 +14,7 @@ This directory contains Docker Compose configuration for running the Event Trigg
 2. **Edit `.env` with your desired configuration** (optional - defaults work out of the box)
 
 3. **Start all services:**
+
    ```bash
    # From deploy directory
    docker compose up --build
@@ -22,11 +24,13 @@ This directory contains Docker Compose configuration for running the Event Trigg
    ```
 
 4. **Stop services:**
+
    ```bash
    docker compose down
    ```
 
 5. **Stop and remove volumes (clean slate):**
+
    ```bash
    docker compose down -v
    ```
@@ -36,6 +40,7 @@ This directory contains Docker Compose configuration for running the Event Trigg
 The `.env` file controls all configuration. Key variables:
 
 ### MySQL
+
 - `MYSQL_ROOT_PASSWORD` - Root password (default: `rootpassword`)
 - `MYSQL_DATABASE` - Database name (default: `event_trigger`)
 - `MYSQL_USER` - Application user (default: `appuser`)
@@ -43,19 +48,23 @@ The `.env` file controls all configuration. Key variables:
 - `MYSQL_PORT` - External port (default: `3306`)
 
 ### Kafka
+
 - `KAFKA_NODE_ID` - Kafka node ID for KRaft (default: `1`)
 - `KAFKA_EXTERNAL_PORT` - External access port (default: `9092`)
 - `KAFKA_INTERNAL_PORT` - Internal Docker network port (default: `29092`)
 - `CLUSTER_ID` - KRaft cluster ID (default: `event-trigger-kafka-cluster-v1`)
 
 ### API Server
+
 - `API_PORT` - API server port (default: `8080`)
 - `LOG_LEVEL` - Logging level (default: `info`)
 
 ### Scheduler
+
 - `SCHEDULER_INTERVAL` - Polling interval (default: `5s`)
 
 ### Constructed Values
+
 - `DATABASE_URL` - Full MySQL connection string
 - `KAFKA_BROKERS` - Kafka broker addresses
 
@@ -228,6 +237,7 @@ docker exec event-trigger-kafka kafka-broker-api-versions.sh --bootstrap-server 
 ## Volumes
 
 Persistent data stored in Docker volumes:
+
 - `mysql_data` - MySQL database files
 - `kafka_data` - Kafka logs and topics
 
@@ -240,6 +250,7 @@ All services communicate via `event-trigger-network` bridge network.
 ### Using Different Ports
 
 Edit `.env`:
+
 ```env
 API_PORT=9000
 MYSQL_PORT=3307
@@ -248,12 +259,14 @@ MYSQL_PORT=3307
 ### Changing Passwords
 
 Edit `.env`:
+
 ```env
 MYSQL_ROOT_PASSWORD=my_secure_root_password
 MYSQL_PASSWORD=my_secure_app_password
 ```
 
 **Important:** If you change MySQL credentials, update `DATABASE_URL` to match:
+
 ```env
 DATABASE_URL=appuser:my_secure_app_password@tcp(mysql:3306)/event_trigger?parseTime=true&loc=UTC
 ```
@@ -261,6 +274,7 @@ DATABASE_URL=appuser:my_secure_app_password@tcp(mysql:3306)/event_trigger?parseT
 ### Production Deployment
 
 For production:
+
 1. Use strong passwords in `.env`
 2. Never commit `.env` to version control (it's already in `.gitignore`)
 3. Consider using Docker secrets or external secret management
@@ -271,6 +285,7 @@ For production:
 ## Troubleshooting
 
 ### Services won't start
+
 ```bash
 # Check logs
 docker compose logs -f
@@ -281,6 +296,7 @@ docker compose logs -f mysql
 ```
 
 ### Database connection errors
+
 ```bash
 # Verify MySQL is healthy
 docker compose ps
@@ -293,6 +309,7 @@ docker exec -it event-trigger-mysql mysql -u appuser -papppassword event_trigger
 ```
 
 ### Kafka connection errors
+
 ```bash
 # Verify Kafka is healthy
 docker compose ps
@@ -305,6 +322,7 @@ docker exec event-trigger-kafka kafka-topics.sh --list --bootstrap-server localh
 ```
 
 ### Reset everything
+
 ```bash
 # Stop and remove all data
 docker compose down -v
