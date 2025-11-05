@@ -1,0 +1,48 @@
+# Binaries
+/bin/
+/bin/*
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build cache
+*.test
+*.out
+
+# IDE/editor metadata
+.idea/
+.vscode/
+*.swp
+
+# Dependency modules
+vendor/
+
+# Logs and runtime data
+*.log
+coverage.out
+
+# Local environment
+.env
+.DS_Store
+
+# AI Context
+CLAUDE.md
+AGENTS.md
+
+# Docker volumes (if running without compose)
+mysql_data/
+kafka_data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+Thumbs.db
+
+# Build artifacts
+dist/
+release/
+build/
