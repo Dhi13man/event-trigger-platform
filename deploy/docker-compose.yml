@@ -6,13 +6,15 @@ services:
     image: mysql:8.0
     container_name: event-trigger-mysql
     hostname: mysql
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: event_trigger
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: apppassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ../db/migrations:/docker-entrypoint-initdb.d:ro
@@ -31,14 +33,16 @@ services:
     image: apache/kafka-native:3.8.1
     container_name: event-trigger-kafka
     hostname: kafka
+    env_file:
+      - .env
     ports:
-      - "9092:9092"    # External access
-      - "29092:29092"  # Internal Docker network
+      - "${KAFKA_EXTERNAL_PORT}:9092"
+      - "${KAFKA_INTERNAL_PORT}:29092"
     environment:
-      # KRaft Mode Configuration (No Zookeeper!)
-      KAFKA_NODE_ID: 1
+      # KRaft Mode Configuration
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID}@kafka:${KAFKA_CONTROLLER_PORT}
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
       # Listener Configuration
@@ -48,7 +52,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       # Cluster Configuration
-      CLUSTER_ID: 'event-trigger-kafka-cluster-v1'
+      CLUSTER_ID: ${CLUSTER_ID}
 
       # Topic & Replication Settings
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -91,13 +95,15 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+    env_file:
+      - .env
     ports:
-      - "8080:8080"
+      - "${API_PORT}:8080"
     environment:
-      DATABASE_URL: "appuser:apppassword@tcp(mysql:3306)/event_trigger?parseTime=true&loc=UTC"
-      KAFKA_BROKERS: "kafka:29092"
-      API_PORT: "8080"
-      LOG_LEVEL: "info"
+      DATABASE_URL: ${DATABASE_URL}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      API_PORT: ${API_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -121,11 +127,13 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: "appuser:apppassword@tcp(mysql:3306)/event_trigger?parseTime=true&loc=UTC"
-      KAFKA_BROKERS: "kafka:29092"
-      SCHEDULER_INTERVAL: "5s"
-      LOG_LEVEL: "info"
+      DATABASE_URL: ${DATABASE_URL}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      SCHEDULER_INTERVAL: ${SCHEDULER_INTERVAL}
+      LOG_LEVEL: ${LOG_LEVEL}
     networks:
       - event-trigger-network
     restart: unless-stopped
@@ -149,10 +157,12 @@ services:
   #   depends_on:
   #     mysql:
   #       condition: service_healthy
+  #   env_file:
+  #     - .env
   #   environment:
-  #     DATABASE_URL: "appuser:apppassword@tcp(mysql:3306)/event_trigger?parseTime=true&loc=UTC"
-  #     RETENTION_INTERVAL: "5m"
-  #     LOG_LEVEL: "info"
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     RETENTION_INTERVAL: ${RETENTION_INTERVAL}
+  #     LOG_LEVEL: ${LOG_LEVEL}
   #   networks:
   #     - event-trigger-network
   #   restart: unless-stopped

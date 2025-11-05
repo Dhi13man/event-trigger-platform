@@ -24,6 +24,10 @@ coverage.out
 
 # Local environment
 .env
+.env.local
+.env*.local
+deploy/.env
+deploy/.env.local
 .DS_Store
 
 # AI Context
