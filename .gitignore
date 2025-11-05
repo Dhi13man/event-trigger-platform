@@ -31,8 +31,8 @@ deploy/.env.local
 .DS_Store
 
 # AI Context
-CLAUDE.md
-AGENTS.md
+# CLAUDE.md
+# AGENTS.md
 
 # Docker volumes (if running without compose)
 mysql_data/
