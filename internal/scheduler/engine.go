@@ -17,11 +17,9 @@ func NewEngine(tick time.Duration) *Engine {
 }
 
 // Run begins the polling loop; integrate with storage and queue once ready.
-func (e *Engine) Run() error {
+func (e *Engine) Run(ctx context.Context) error {
 	ticker := time.NewTicker(e.tick)
 	defer ticker.Stop()
-
-	ctx := context.Background()
 	for {
 		select {
 		case <-ticker.C:
