@@ -2,6 +2,8 @@
 
 ## Quick Start
 
+### Using Default Configuration
+
 ```bash
 # From project root
 docker compose -f deploy/docker-compose.yml up
@@ -15,6 +17,49 @@ docker compose -f deploy/docker-compose.yml logs -f
 # Stop
 docker compose -f deploy/docker-compose.yml down
 ```
+
+### Using Custom Configuration
+
+For production use, credentials and configuration should be externalized:
+
+1. Copy the example environment file:
+```bash
+cp deploy/.env.example deploy/.env
+```
+
+2. Edit `deploy/.env` with your custom values:
+```bash
+# MySQL Database Configuration
+MYSQL_ROOT_PASSWORD=your_secure_root_password
+MYSQL_DATABASE=event_trigger
+MYSQL_USER=appuser
+MYSQL_PASSWORD=your_secure_app_password
+
+# Kafka Configuration
+KAFKA_PORT=9092
+KAFKA_INTERNAL_PORT=29092
+
+# API Configuration
+API_PORT=8080
+LOG_LEVEL=info
+
+# Scheduler Configuration
+SCHEDULER_INTERVAL=5s
+```
+
+3. Start the services with your custom configuration:
+```bash
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+```
+
+Alternatively, you can export environment variables directly:
+```bash
+export MYSQL_ROOT_PASSWORD=your_secure_root_password
+export MYSQL_PASSWORD=your_secure_app_password
+docker compose -f deploy/docker-compose.yml up -d
+```
+
+**Security Note**: Never commit the `.env` file with real credentials to version control. The `.env.example` file contains default values for development only.
 
 ## Services
 
