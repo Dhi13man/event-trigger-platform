@@ -90,3 +90,141 @@ func TestReceiveWebhook_SchemaError(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
+
+func TestReceiveWebhook_WhenTriggerNotFound_ThenReturns404(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockTriggerReader := &fakeTriggerReader{
+		resp: nil,
+		err:  assert.AnError,
+	}
+	mockEventFirer := &fakeEventFiring{id: "evt-1"}
+	mockHandler := NewWebhookHandler(mockTriggerReader, mockEventFirer, logging.NewNoOpLogger())
+	mockRouter := gin.New()
+	mockRouter.POST("/api/v1/webhook/:trigger_id", mockHandler.ReceiveWebhook)
+
+	mockRecorder := httptest.NewRecorder()
+	mockPayload := map[string]interface{}{"x": 1}
+	mockBody, _ := json.Marshal(mockPayload)
+	mockRequest := httptest.NewRequest(http.MethodPost, "/api/v1/webhook/nonexistent", bytes.NewReader(mockBody))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusInternalServerError, mockRecorder.Code)
+}
+
+func TestReceiveWebhook_WhenInvalidJSON_ThenReturns400(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	now := time.Now()
+	mockConfig := map[string]interface{}{
+		"schema": map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{"x": map[string]interface{}{"type": "number"}},
+		},
+	}
+	mockConfigBytes, _ := json.Marshal(mockConfig)
+	mockTriggerResponse := &models.TriggerResponse{
+		ID:        "t1",
+		Name:      "webhook",
+		Type:      models.TriggerTypeWebhook,
+		Status:    models.TriggerStatusActive,
+		Config:    mockConfigBytes,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	mockHandler := NewWebhookHandler(&fakeTriggerReader{resp: mockTriggerResponse}, &fakeEventFiring{id: "evt-1"}, logging.NewNoOpLogger())
+	mockRouter := gin.New()
+	mockRouter.POST("/api/v1/webhook/:trigger_id", mockHandler.ReceiveWebhook)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPost, "/api/v1/webhook/t1", bytes.NewReader([]byte("invalid json")))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, mockRecorder.Code)
+}
+
+func TestReceiveWebhook_WhenFireTriggerFails_ThenReturns500(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	now := time.Now()
+	mockConfig := map[string]interface{}{
+		"schema": map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{"x": map[string]interface{}{"type": "number"}},
+			"required":   []interface{}{"x"},
+		},
+	}
+	mockConfigBytes, _ := json.Marshal(mockConfig)
+	mockTriggerResponse := &models.TriggerResponse{
+		ID:        "t1",
+		Name:      "webhook",
+		Type:      models.TriggerTypeWebhook,
+		Status:    models.TriggerStatusActive,
+		Config:    mockConfigBytes,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	mockHandler := NewWebhookHandler(
+		&fakeTriggerReader{resp: mockTriggerResponse},
+		&fakeEventFiring{err: assert.AnError},
+		logging.NewNoOpLogger(),
+	)
+	mockRouter := gin.New()
+	mockRouter.POST("/api/v1/webhook/:trigger_id", mockHandler.ReceiveWebhook)
+
+	mockPayload := map[string]interface{}{"x": 1}
+	mockBody, _ := json.Marshal(mockPayload)
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPost, "/api/v1/webhook/t1", bytes.NewReader(mockBody))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusInternalServerError, mockRecorder.Code)
+}
+
+func TestReceiveWebhook_WhenTriggerInactive_ThenReturns400(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	now := time.Now()
+	mockConfig := map[string]interface{}{
+		"schema": map[string]interface{}{
+			"type": "object",
+		},
+	}
+	mockConfigBytes, _ := json.Marshal(mockConfig)
+	mockTriggerResponse := &models.TriggerResponse{
+		ID:        "t1",
+		Name:      "webhook",
+		Type:      models.TriggerTypeWebhook,
+		Status:    models.TriggerStatusInactive,
+		Config:    mockConfigBytes,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	mockHandler := NewWebhookHandler(&fakeTriggerReader{resp: mockTriggerResponse}, &fakeEventFiring{id: "evt-1"}, logging.NewNoOpLogger())
+	mockRouter := gin.New()
+	mockRouter.POST("/api/v1/webhook/:trigger_id", mockHandler.ReceiveWebhook)
+
+	mockPayload := map[string]interface{}{"x": 1}
+	mockBody, _ := json.Marshal(mockPayload)
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPost, "/api/v1/webhook/t1", bytes.NewReader(mockBody))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, mockRecorder.Code)
+}

@@ -32,8 +32,11 @@ func (f *fakeTriggerSvc) CreateTrigger(ctx context.Context, req models.CreateTri
 	return f.createResp, f.createErr
 }
 func (f *fakeTriggerSvc) ListTriggers(ctx context.Context, query models.ListTriggersQuery) (models.TriggerListResponse, error) {
+	if f.listErr != nil {
+		return models.TriggerListResponse{}, f.listErr
+	}
 	if f.listResp.Triggers != nil {
-		return f.listResp, f.listErr
+		return f.listResp, nil
 	}
 	return models.TriggerListResponse{Triggers: []models.TriggerResponse{}, Pagination: models.Pagination{}}, nil
 }
@@ -182,4 +185,192 @@ func TestDeleteTrigger_NotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestTestTrigger_WhenCalled_ThenReturnsNotImplemented(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockSvc := &fakeTriggerSvc{}
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), mockSvc)
+	mockRouter := gin.New()
+	mockRouter.POST("/api/v1/triggers/:id/test", mockHandler.TestTrigger)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPost, "/api/v1/triggers/test-id-123/test", nil)
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusNotImplemented, mockRecorder.Code)
+}
+
+func TestListTriggers_WhenPageSizeInvalid_ThenUsesDefault(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockTriggers := []models.TriggerResponse{
+		{ID: "1", Name: "Test Trigger", Type: models.TriggerTypeWebhook},
+	}
+	mockSvc := &fakeTriggerSvc{
+		listResp: models.TriggerListResponse{
+			Triggers: mockTriggers,
+			Pagination: models.Pagination{
+				CurrentPage:  1,
+				PageSize:     10,
+				TotalPages:   1,
+				TotalRecords: 1,
+			},
+		},
+	}
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), mockSvc)
+	mockRouter := gin.New()
+	mockRouter.GET("/api/v1/triggers", mockHandler.ListTriggers)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodGet, "/api/v1/triggers?page_size=-1", nil)
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, mockRecorder.Code)
+}
+
+func TestListTriggers_WhenServiceReturnsError_ThenReturns500(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockSvc := &fakeTriggerSvc{
+		listErr: assert.AnError,
+	}
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), mockSvc)
+	mockRouter := gin.New()
+	mockRouter.GET("/api/v1/triggers", mockHandler.ListTriggers)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodGet, "/api/v1/triggers", nil)
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusInternalServerError, mockRecorder.Code)
+}
+
+func TestUpdateTrigger_WhenServiceReturnsError_ThenReturns500(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockSvc := &fakeTriggerSvc{
+		updateErr: assert.AnError,
+	}
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), mockSvc)
+	mockRouter := gin.New()
+	mockRouter.PUT("/api/v1/triggers/:id", mockHandler.UpdateTrigger)
+
+	mockStatus := models.TriggerStatusActive
+	mockRequestBody := models.UpdateTriggerRequest{
+		Name:   stringPtr("Updated Trigger"),
+		Status: &mockStatus,
+	}
+	mockBody, _ := json.Marshal(mockRequestBody)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPut, "/api/v1/triggers/123", bytes.NewBuffer(mockBody))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusInternalServerError, mockRecorder.Code)
+}
+
+func TestUpdateTrigger_WhenNotFound_ThenReturns404(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockSvc := &fakeTriggerSvc{
+		updateErr: storage.ErrTriggerNotFound,
+	}
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), mockSvc)
+	mockRouter := gin.New()
+	mockRouter.PUT("/api/v1/triggers/:id", mockHandler.UpdateTrigger)
+
+	mockRequestBody := models.UpdateTriggerRequest{
+		Name: stringPtr("Updated Trigger"),
+	}
+	mockBody, _ := json.Marshal(mockRequestBody)
+
+	mockRecorder := httptest.NewRecorder()
+	mockRequest := httptest.NewRequest(http.MethodPut, "/api/v1/triggers/nonexistent", bytes.NewBuffer(mockBody))
+	mockRequest.Header.Set("Content-Type", "application/json")
+
+	// Act
+	mockRouter.ServeHTTP(mockRecorder, mockRequest)
+
+	// Assert
+	assert.Equal(t, http.StatusNotFound, mockRecorder.Code)
+}
+
+func TestDecorateWebhookURL_WhenNilResponse_ThenDoesNothing(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockRecorder := httptest.NewRecorder()
+	mockContext, _ := gin.CreateTestContext(mockRecorder)
+	mockRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	mockContext.Request = mockRequest
+
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), &fakeTriggerSvc{})
+
+	// Act (should not panic)
+	mockHandler.decorateWebhookURL(mockContext, nil)
+}
+
+func TestDecorateWebhookURL_WhenNotWebhookType_ThenDoesNothing(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockRecorder := httptest.NewRecorder()
+	mockContext, _ := gin.CreateTestContext(mockRecorder)
+	mockRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	mockContext.Request = mockRequest
+
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), &fakeTriggerSvc{})
+	mockResponse := &models.TriggerResponse{
+		ID:   "123",
+		Type: models.TriggerTypeTimeScheduled,
+	}
+
+	// Act
+	mockHandler.decorateWebhookURL(mockContext, mockResponse)
+
+	// Assert - WebhookURL should remain empty
+	if mockResponse.WebhookURL != "" {
+		t.Errorf("expected WebhookURL to be empty, got %s", mockResponse.WebhookURL)
+	}
+}
+
+func TestDecorateWebhookURL_WhenHTTPSRequest_ThenUsesHTTPS(t *testing.T) {
+	// Arrange
+	gin.SetMode(gin.TestMode)
+	mockRecorder := httptest.NewRecorder()
+	mockContext, _ := gin.CreateTestContext(mockRecorder)
+	mockRequest := httptest.NewRequest(http.MethodGet, "/test", nil)
+	mockRequest.Host = "example.com"
+	mockRequest.Header.Set("X-Forwarded-Proto", "https")
+	mockContext.Request = mockRequest
+
+	mockHandler := NewTriggerHandler(logging.NewNoOpLogger(), &fakeTriggerSvc{})
+	mockResponse := &models.TriggerResponse{
+		ID:   "trigger-123",
+		Type: models.TriggerTypeWebhook,
+	}
+
+	// Act
+	mockHandler.decorateWebhookURL(mockContext, mockResponse)
+
+	// Assert
+	assert.Contains(t, mockResponse.WebhookURL, "https://")
+	assert.Contains(t, mockResponse.WebhookURL, "trigger-123")
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
