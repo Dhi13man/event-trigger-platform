@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -14,14 +15,23 @@ import (
 	"go.uber.org/zap"
 )
 
+// TriggerService defines the trigger operations the handler depends on.
+type TriggerService interface {
+	CreateTrigger(ctx context.Context, req models.CreateTriggerRequest) (*models.TriggerResponse, error)
+	ListTriggers(ctx context.Context, query models.ListTriggersQuery) (models.TriggerListResponse, error)
+	GetTrigger(ctx context.Context, triggerID string) (*models.TriggerResponse, error)
+	UpdateTrigger(ctx context.Context, triggerID string, req models.UpdateTriggerRequest) (*models.TriggerResponse, error)
+	DeleteTrigger(ctx context.Context, triggerID string) error
+}
+
 // TriggerHandler handles trigger management requests.
 type TriggerHandler struct {
 	logger  logging.Logger
-	service *triggers.Service
+	service TriggerService
 }
 
 // NewTriggerHandler creates a new trigger handler.
-func NewTriggerHandler(logger logging.Logger, service *triggers.Service) *TriggerHandler {
+func NewTriggerHandler(logger logging.Logger, service TriggerService) *TriggerHandler {
 	return &TriggerHandler{
 		logger:  logger.With(zap.String("handler", "trigger")),
 		service: service,

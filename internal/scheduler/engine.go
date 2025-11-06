@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dhima/event-trigger-platform/internal/events"
 	"github.com/dhima/event-trigger-platform/internal/models"
 	"github.com/dhima/event-trigger-platform/internal/storage"
 	"github.com/dhima/event-trigger-platform/internal/triggers"
+	"github.com/dhima/event-trigger-platform/pkg/clock"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -16,18 +16,34 @@ import (
 // Engine periodically scans for triggers that are due to fire and enqueues them.
 type Engine struct {
 	tick         time.Duration
-	db           *storage.MySQLClient
-	eventService *events.Service
+	db           ScheduleStore
+	eventService EventFirer
 	logger       *zap.Logger
+	clock        clock.Clock
 }
 
 // NewEngine constructs a scheduler with the provided polling cadence and dependencies.
-func NewEngine(tick time.Duration, db *storage.MySQLClient, eventService *events.Service, logger *zap.Logger) *Engine {
+func NewEngine(tick time.Duration, db *storage.MySQLClient, eventService EventFirer, logger *zap.Logger) *Engine {
 	return &Engine{
 		tick:         tick,
 		db:           db,
 		eventService: eventService,
 		logger:       logger,
+		clock:        clock.RealClock{},
+	}
+}
+
+// NewEngineWithClock allows injecting store, event service and clock for tests.
+func NewEngineWithClock(tick time.Duration, db ScheduleStore, eventService EventFirer, logger *zap.Logger, clk clock.Clock) *Engine {
+	if clk == nil {
+		clk = clock.RealClock{}
+	}
+	return &Engine{
+		tick:         tick,
+		db:           db,
+		eventService: eventService,
+		logger:       logger,
+		clock:        clk,
 	}
 }
 
@@ -214,7 +230,7 @@ func (e *Engine) createNextSchedule(ctx context.Context, trigger *models.Trigger
 	}
 
 	// Calculate next fire time
-	nextFireTime, err := triggers.CalculateNextFireTime(cronConfig.Cron, cronConfig.Timezone, time.Now())
+	nextFireTime, err := triggers.CalculateNextFireTime(cronConfig.Cron, cronConfig.Timezone, e.clock.Now())
 	if err != nil {
 		return fmt.Errorf("failed to calculate next fire time: %w", err)
 	}
