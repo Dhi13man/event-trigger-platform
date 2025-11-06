@@ -34,6 +34,7 @@ A production-ready, horizontally scalable event trigger management platform buil
   - Atomic transactions for data consistency
   - Optimized database queries with composite indexes
   - Metrics and observability endpoints
+  - At-least-once scheduling with retry on publish failure
 
 ## Architecture
 
@@ -76,6 +77,82 @@ A production-ready, horizontally scalable event trigger management platform buil
 - **Flexibility**: Each consumer implements different execution logic
 - **Separation of Concerns**: Platform manages scheduling, users manage execution
 - **Multi-tenancy**: Different consumers for different trigger types
+
+## Reliability Guarantees
+
+- At-least-once scheduling semantics for time/cron triggers.
+- Schedules move `pending → processing → completed` only after a successful Kafka publish.
+- On publish failure (e.g., Kafka unavailable):
+  - The schedule is reverted to `pending`, `attempt_count` is incremented, and it is retried on the next poll.
+  - After max retries, the schedule is marked `cancelled` for operator visibility; the event is not lost silently.
+- Webhook endpoint validates payloads against stored JSON Schema and publishes to Kafka on success.
+- Webhook requests for unknown trigger IDs return 404 (not 500).
+
+Kafka topic used: `trigger-events` (auto-created in local Compose).
+
+### Kafka Message Schema
+
+Messages published to Kafka topic `trigger-events` use this JSON shape:
+
+```json
+{
+  "event_id": "<uuid>",
+  "trigger_id": "<uuid>",
+  "type": "webhook|time_scheduled|cron_scheduled",
+  "payload": {"...": "..."},
+  "fired_at": "2025-11-06T10:30:00Z",
+  "source": "webhook|scheduler|manual-test"
+}
+```
+
+Note: Endpoint/headers are stored in the trigger config and are not embedded in the Kafka message. Consumers that need these details should call the API (`GET /api/v1/triggers/:id`) to fetch the trigger configuration.
+
+## External Consumer Guide
+
+Below is a minimal Go consumer using `segmentio/kafka-go`:
+
+```go
+package main
+
+import (
+  "context"
+  "encoding/json"
+  "log"
+  "time"
+  "github.com/segmentio/kafka-go"
+)
+
+type TriggerEvent struct {
+  EventID   string                 `json:"event_id"`
+  TriggerID string                 `json:"trigger_id"`
+  Type      string                 `json:"type"`
+  Payload   map[string]interface{} `json:"payload"`
+  FiredAt   time.Time              `json:"fired_at"`
+  Source    string                 `json:"source"`
+}
+
+func main() {
+  r := kafka.NewReader(kafka.ReaderConfig{
+    Brokers:  []string{"localhost:9092"},
+    Topic:    "trigger-events",
+    GroupID:  "example-consumer",
+    MinBytes: 1,
+    MaxBytes: 10e6,
+  })
+  defer r.Close()
+
+  for {
+    msg, err := r.ReadMessage(context.Background())
+    if err != nil { log.Fatal(err) }
+    var ev TriggerEvent
+    if err := json.Unmarshal(msg.Value, &ev); err != nil { log.Println("bad message:", err); continue }
+    log.Printf("event %s for trigger %s type=%s source=%s", ev.EventID, ev.TriggerID, ev.Type, ev.Source)
+    // If needed, fetch trigger config from API: GET /api/v1/triggers/{ev.TriggerID}
+  }
+}
+```
+
+Any language can be used; rely on consumer groups for horizontal scaling. Implement your own retry/deduplication at the consumer if needed.
 
 ## Quick Start
 
@@ -171,6 +248,13 @@ Visit **<http://localhost:8080/swagger/index.html>** for interactive API documen
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/webhook/:trigger_id` | Receive webhook payload |
+
+Status codes:
+
+- 202 Accepted: payload validated and enqueued
+- 400 Bad Request: invalid JSON or schema validation errors
+- 404 Not Found: unknown or deleted trigger ID
+- 500 Internal Error: server/DB issues
 
 #### System
 
@@ -386,7 +470,7 @@ curl "http://localhost:8080/api/v1/events?retention_status=archived&page=1&limit
 
 ```bash
 # Fire a trigger immediately for testing
-curl -X POST http://localhost:8080/api/v1/triggers/550e8400-...test
+curl -X POST http://localhost:8080/api/v1/triggers/550e8400-.../test
 
 # Event log will have is_test_run=true
 ```
@@ -426,6 +510,9 @@ All configuration is managed via environment variables (12-factor app pattern):
 | `ENVIRONMENT` | Environment (development, production) | `development` | ❌ |
 | `SCHEDULER_INTERVAL` | Scheduler polling interval | `5s` | ❌ |
 | `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `*` | ❌ |
+
+See `deploy/.env.example` for a working Compose setup and defaults that run locally.
+The Compose file exposes Kafka on `localhost:9092` and the API at `localhost:8080`.
 
 ### Example `.env` File
 
@@ -523,6 +610,24 @@ Event logs automatically transition through states:
 - **48+ hours**: Permanently deleted
 
 Managed by MySQL Event Scheduler (see `db/migrations/004_setup_retention_events.sql`).
+
+## Troubleshooting
+
+- Kafka unavailable during publish
+  - Symptom: scheduler logs publish errors; schedules stay in `pending` with growing `attempt_count`.
+  - Action: restore Kafka; the scheduler will retry automatically on the next tick.
+- Webhook returns 404
+  - Symptom: calling `/api/v1/webhook/:trigger_id` with an unknown ID.
+  - Action: verify the trigger exists and is `webhook` type and `active`.
+- Webhook returns 400
+  - Symptom: invalid JSON or schema validation errors.
+  - Action: correct payload per the stored JSON Schema in the trigger config.
+- Retention not running
+  - Symptom: old events never archive/delete.
+  - Action: ensure MySQL Event Scheduler is ON and the retention events exist; see `db/migrations/004_setup_retention_events.sql`.
+- Port collisions
+  - Symptom: Compose fails to start.
+  - Action: adjust `API_PORT`, `KAFKA_EXTERNAL_PORT`, or `MYSQL_PORT` in `deploy/.env`.
 
 ## Development
 

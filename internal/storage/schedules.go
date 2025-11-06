@@ -82,14 +82,13 @@ func (c *MySQLClient) GetDueSchedules(ctx context.Context, limit int) ([]Schedul
 	return schedules, nil
 }
 
-// UpdateScheduleStatus updates the status of a schedule with optional attempt tracking.
+// UpdateScheduleStatus updates the status of a schedule (without incrementing attempts).
 // This method uses row-level locking (implicitly via UPDATE) to prevent duplicate processing.
+// Used for: pending → processing, processing → completed
 func (c *MySQLClient) UpdateScheduleStatus(ctx context.Context, scheduleID string, status models.ScheduleStatus) error {
 	query := `
 		UPDATE trigger_schedules
 		SET status = ?,
-		    last_attempt_at = NOW(),
-		    attempt_count = attempt_count + 1,
 		    updated_at = NOW()
 		WHERE id = ?
 	`
@@ -97,6 +96,64 @@ func (c *MySQLClient) UpdateScheduleStatus(ctx context.Context, scheduleID strin
 	result, err := c.db.ExecContext(ctx, query, status, scheduleID)
 	if err != nil {
 		return fmt.Errorf("failed to update schedule status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("schedule not found: %s", scheduleID)
+	}
+
+	return nil
+}
+
+// IncrementScheduleAttempt increments the attempt count and updates last_attempt_at.
+// Used when a trigger firing fails and needs to be retried.
+func (c *MySQLClient) IncrementScheduleAttempt(ctx context.Context, scheduleID string) error {
+	query := `
+		UPDATE trigger_schedules
+		SET attempt_count = attempt_count + 1,
+		    last_attempt_at = NOW(),
+		    updated_at = NOW()
+		WHERE id = ?
+	`
+
+	result, err := c.db.ExecContext(ctx, query, scheduleID)
+	if err != nil {
+		return fmt.Errorf("failed to increment schedule attempt: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("schedule not found: %s", scheduleID)
+	}
+
+	return nil
+}
+
+// RevertScheduleToPending reverts a schedule from 'processing' to 'pending' for retry.
+// Increments attempt_count and updates last_attempt_at.
+// Used when trigger firing fails but hasn't exceeded max retries.
+func (c *MySQLClient) RevertScheduleToPending(ctx context.Context, scheduleID string) error {
+	query := `
+		UPDATE trigger_schedules
+		SET status = 'pending',
+		    attempt_count = attempt_count + 1,
+		    last_attempt_at = NOW(),
+		    updated_at = NOW()
+		WHERE id = ?
+	`
+
+	result, err := c.db.ExecContext(ctx, query, scheduleID)
+	if err != nil {
+		return fmt.Errorf("failed to revert schedule to pending: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()

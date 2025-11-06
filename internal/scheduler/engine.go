@@ -118,20 +118,55 @@ func (e *Engine) processSchedule(ctx context.Context, scheduleWithTrigger storag
 	// Step 3: Fire trigger via EventService (creates event log + publishes to Kafka)
 	eventID, err := e.eventService.FireTrigger(ctx, &trigger, models.EventSourceScheduler, payload, false)
 	if err != nil {
-		// Even if firing fails, we still mark schedule as completed to avoid retry loops
-		// The event log will have execution_status='failure' with error message
-		e.logger.Error("failed to fire trigger, marking schedule as completed anyway",
+		// CRITICAL: On failure, implement retry logic with max attempts
+		const maxRetries = 5
+		currentAttempts := schedule.AttemptCount + 1 // +1 because we're about to increment
+
+		e.logger.Error("failed to fire trigger",
 			zap.String("schedule_id", schedule.ID),
 			zap.String("trigger_id", trigger.ID),
+			zap.Int("current_attempts", currentAttempts),
+			zap.Int("max_retries", maxRetries),
 			zap.Error(err))
-	} else {
-		e.logger.Info("trigger fired successfully",
-			zap.String("schedule_id", schedule.ID),
-			zap.String("event_id", eventID),
-			zap.String("trigger_id", trigger.ID))
+
+		if currentAttempts < maxRetries {
+			// Revert to 'pending' for retry on next poll (increments attempt_count)
+			revertErr := e.db.RevertScheduleToPending(ctx, schedule.ID)
+			if revertErr != nil {
+				e.logger.Error("failed to revert schedule to pending",
+					zap.String("schedule_id", schedule.ID),
+					zap.Error(revertErr))
+			} else {
+				e.logger.Info("schedule reverted to pending for retry",
+					zap.String("schedule_id", schedule.ID),
+					zap.Int("attempts", currentAttempts),
+					zap.Int("remaining_retries", maxRetries-currentAttempts))
+			}
+		} else {
+			// Max retries exceeded - mark as 'cancelled' to prevent further attempts
+			cancelErr := e.db.UpdateScheduleStatus(ctx, schedule.ID, models.ScheduleStatusCancelled)
+			if cancelErr != nil {
+				e.logger.Error("failed to cancel schedule after max retries",
+					zap.String("schedule_id", schedule.ID),
+					zap.Error(cancelErr))
+			} else {
+				e.logger.Warn("schedule cancelled after max retries exceeded",
+					zap.String("schedule_id", schedule.ID),
+					zap.Int("attempts", currentAttempts),
+					zap.Error(err))
+			}
+		}
+
+		// Return error to stop further processing (no next schedule creation)
+		return fmt.Errorf("failed to fire trigger (attempt %d/%d): %w", currentAttempts, maxRetries, err)
 	}
 
-	// Step 4: Mark schedule as 'completed'
+	e.logger.Info("trigger fired successfully",
+		zap.String("schedule_id", schedule.ID),
+		zap.String("event_id", eventID),
+		zap.String("trigger_id", trigger.ID))
+
+	// Step 4: Mark schedule as 'completed' (only on success)
 	err = e.db.UpdateScheduleStatus(ctx, schedule.ID, models.ScheduleStatusCompleted)
 	if err != nil {
 		return fmt.Errorf("failed to mark schedule as completed: %w", err)

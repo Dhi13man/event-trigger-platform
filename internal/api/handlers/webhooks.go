@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/dhima/event-trigger-platform/internal/api/response"
 	"github.com/dhima/event-trigger-platform/internal/events"
 	"github.com/dhima/event-trigger-platform/internal/logging"
 	"github.com/dhima/event-trigger-platform/internal/models"
+	"github.com/dhima/event-trigger-platform/internal/storage"
 	"github.com/dhima/event-trigger-platform/internal/triggers"
 	"github.com/gin-gonic/gin"
 	"github.com/xeipuuv/gojsonschema"
@@ -67,6 +69,17 @@ func (h *WebhookHandler) ReceiveWebhook(c *gin.Context) {
 	// Step 1: Fetch trigger from database
 	trigger, err := h.triggerService.GetTrigger(c.Request.Context(), triggerID)
 	if err != nil {
+		// Discriminate between 404 (trigger not found) and 500 (server error)
+		if errors.Is(err, storage.ErrTriggerNotFound) {
+			h.logger.Warn("trigger not found",
+				zap.String("trigger_id", triggerID),
+				zap.String("request_id", response.GetRequestID(c)),
+			)
+			response.NotFound(c, "trigger not found")
+			return
+		}
+
+		// Real server error (database connection, etc.)
 		h.logger.Error("failed to fetch trigger",
 			zap.Error(err),
 			zap.String("trigger_id", triggerID),
@@ -76,8 +89,10 @@ func (h *WebhookHandler) ReceiveWebhook(c *gin.Context) {
 		return
 	}
 
+	// Note: GetTrigger returns (nil, ErrTriggerNotFound) when not found,
+	// so we shouldn't reach here with trigger == nil, but keep defensive check
 	if trigger == nil {
-		h.logger.Warn("trigger not found",
+		h.logger.Warn("trigger is nil despite no error",
 			zap.String("trigger_id", triggerID),
 			zap.String("request_id", response.GetRequestID(c)),
 		)
@@ -120,7 +135,7 @@ func (h *WebhookHandler) ReceiveWebhook(c *gin.Context) {
 	}
 
 	// Step 3: Validate payload against JSON schema (if schema is defined)
-	if webhookConfig.Schema != nil && len(webhookConfig.Schema) > 0 {
+	if len(webhookConfig.Schema) > 0 {
 		schemaLoader := gojsonschema.NewGoLoader(webhookConfig.Schema)
 		payloadLoader := gojsonschema.NewGoLoader(payload)
 
