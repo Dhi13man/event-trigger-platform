@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/dhima/event-trigger-platform/internal/api/response"
@@ -106,9 +107,9 @@ func (h *WebhookHandler) ReceiveWebhook(c *gin.Context) {
 		return
 	}
 
-	// Step 2: Parse trigger config to get JSON schema
+	// Step 2: Parse trigger config from stored JSON (NOT from request body)
 	var webhookConfig models.WebhookTriggerConfig
-	if err := c.ShouldBindJSON(&trigger.Config); err != nil {
+	if err := json.Unmarshal(trigger.Config, &webhookConfig); err != nil {
 		h.logger.Error("failed to parse webhook config",
 			zap.Error(err),
 			zap.String("trigger_id", triggerID),

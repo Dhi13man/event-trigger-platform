@@ -572,7 +572,7 @@ go build -o bin/scheduler ./cmd/scheduler
 
 ### Project Structure
 
-```
+```plain
 event-trigger-platform/
 ├── cmd/
 │   ├── api/              # API server entrypoint
@@ -655,7 +655,7 @@ Coming soon: Helm charts and K8s manifests for production deployment.
 
 ### Environment Considerations
 
-#### Development
+#### Dev
 
 - Single API instance
 - Single scheduler instance
@@ -850,4 +850,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/Dhi13man/event-trigger-platform/issues)
 - **Swagger UI**: <http://localhost:8080/swagger/index.html> (when running)
 
-**Built with Go, MySQL, and Kafka**
+> Built with Go, MySQL, and Kafka

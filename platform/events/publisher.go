@@ -35,8 +35,8 @@ func NewPublisher(brokers []string, topic string, logger *zap.Logger) *Publisher
 		// Production settings for durability
 		RequiredAcks: kafka.RequireAll, // acks=all - wait for all in-sync replicas
 		Compression:  kafka.Snappy,     // Compression for network efficiency
-		MaxAttempts:  3,                 // Retry up to 3 times
-		BatchSize:    1,                 // Low latency - publish immediately
+		MaxAttempts:  3,                // Retry up to 3 times
+		BatchSize:    1,                // Low latency - publish immediately
 		BatchTimeout: 10 * time.Millisecond,
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
