@@ -21,136 +21,6 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
-        "/api/v1/events": {
-            "get": {
-                "description": "Retrieves event logs with filtering and pagination. By default shows only active events (last 2 hours).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Events"
-                ],
-                "summary": "List event logs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by trigger ID",
-                        "name": "trigger_id",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "active",
-                            "archived"
-                        ],
-                        "type": "string",
-                        "default": "active",
-                        "description": "Filter by retention status",
-                        "name": "retention_status",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "success",
-                            "failure"
-                        ],
-                        "type": "string",
-                        "description": "Filter by execution status",
-                        "name": "execution_status",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "api",
-                            "scheduled",
-                            "manual-test"
-                        ],
-                        "type": "string",
-                        "description": "Filter by event source",
-                        "name": "source",
-                        "in": "query"
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/EventLogListResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid query parameters",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/events/{id}": {
-            "get": {
-                "description": "Retrieves details of a specific event log by ID, including full payload and error message if failed",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Events"
-                ],
-                "summary": "Get event log details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Event ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/EventLogResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Event not found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/triggers": {
             "get": {
                 "description": "Retrieves a list of triggers with optional filtering and pagination",
@@ -442,52 +312,123 @@
                 }
             }
         },
-        "/api/v1/webhook/{trigger_id}": {
-            "post": {
-                "description": "Receives a payload from external systems, validates it against the trigger's JSON schema, and fires the trigger",
-                "consumes": [
-                    "application/json"
-                ],
+        "/events": {
+            "get": {
+                "description": "Retrieves event logs with filtering and pagination. By default shows only active events (last 2 hours).",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Webhooks"
+                    "Events"
                 ],
-                "summary": "Receive webhook payload for API trigger",
+                "summary": "List event logs",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trigger ID",
+                        "description": "Filter by trigger ID",
                         "name": "trigger_id",
-                        "in": "path",
-                        "required": true
+                        "in": "query"
                     },
                     {
-                        "description": "Webhook payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/WebhookPayload"
-                        }
+                        "enum": [
+                            "active",
+                            "archived"
+                        ],
+                        "type": "string",
+                        "default": "active",
+                        "description": "Filter by retention status",
+                        "name": "retention_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "success",
+                            "failure"
+                        ],
+                        "type": "string",
+                        "description": "Filter by execution status",
+                        "name": "execution_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "webhook",
+                            "scheduler",
+                            "manual-test"
+                        ],
+                        "type": "string",
+                        "description": "Filter by event source",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
-                    "202": {
-                        "description": "Webhook accepted and trigger queued",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse"
+                            "$ref": "#/definitions/EventLogListResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid payload or schema validation failed",
+                        "description": "Invalid query parameters",
                         "schema": {
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
                         }
                     },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{id}": {
+            "get": {
+                "description": "Retrieves details of a specific event log by ID, including full payload and error message if failed",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Get event log details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/EventLogResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Trigger not found",
+                        "description": "Event not found",
                         "schema": {
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
                         }
@@ -536,6 +477,81 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/MetricsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhook/{trigger_id}": {
+            "post": {
+                "description": "Receives a payload from external systems, validates it against the trigger's JSON schema, and fires the trigger",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Receive webhook payload for webhook trigger",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trigger ID",
+                        "name": "trigger_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Webhook payload (validated against trigger's schema)",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Webhook accepted and trigger queued",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload or schema validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Trigger not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse"
                         }
                     }
                 }
@@ -809,19 +825,6 @@
                         }
                     ],
                     "example": "active"
-                }
-            }
-        },
-        "WebhookPayload": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "trigger_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },

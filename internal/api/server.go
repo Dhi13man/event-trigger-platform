@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/dhima/event-trigger-platform/internal/api/handlers"
 	"github.com/dhima/event-trigger-platform/internal/api/middleware"
+	"github.com/dhima/event-trigger-platform/internal/events"
 	"github.com/dhima/event-trigger-platform/internal/logging"
 	"github.com/dhima/event-trigger-platform/internal/storage"
 	"github.com/dhima/event-trigger-platform/internal/triggers"
 	"github.com/dhima/event-trigger-platform/pkg/config"
+	platformEvents "github.com/dhima/event-trigger-platform/platform/events"
 	"github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
@@ -33,6 +36,8 @@ type Server struct {
 	db     *sql.DB
 
 	triggerService *triggers.Service
+	eventService   *events.Service
+	kafkaPublisher *platformEvents.Publisher
 }
 
 // NewServer wires the API dependencies together.
@@ -55,11 +60,38 @@ func NewServer() *Server {
 	db := connectDatabase(cfg, logger)
 	mysqlClient := storage.NewMySQLClient(db)
 
+	// Create zap logger for Kafka publisher (needs *zap.Logger, not our Logger interface)
+	var zapLogger *zap.Logger
+	var zapErr error
+	if cfg.Environment == "production" {
+		zapLogger, zapErr = zap.NewProduction()
+	} else {
+		zapLogger, zapErr = zap.NewDevelopment()
+	}
+	if zapErr != nil {
+		panic(fmt.Sprintf("failed to initialize zap logger for Kafka: %v", zapErr))
+	}
+
+	// Initialize Kafka publisher
+	kafkaBrokers := strings.Split(cfg.KafkaBrokers, ",")
+	for i, broker := range kafkaBrokers {
+		kafkaBrokers[i] = strings.TrimSpace(broker)
+	}
+	kafkaPublisher := platformEvents.NewPublisher(kafkaBrokers, "trigger-events", zapLogger)
+	logger.Info("Kafka publisher initialized for API server",
+		zap.Strings("brokers", kafkaBrokers))
+
+	// Initialize services
+	triggerService := triggers.NewService(mysqlClient)
+	eventService := events.NewService(mysqlClient, kafkaPublisher, zapLogger)
+
 	server := &Server{
 		config:         cfg,
 		logger:         logger,
 		db:             db,
-		triggerService: triggers.NewService(mysqlClient),
+		triggerService: triggerService,
+		eventService:   eventService,
+		kafkaPublisher: kafkaPublisher,
 	}
 
 	server.setupRouter()
@@ -116,7 +148,7 @@ func (s *Server) setupRouter() {
 		}
 
 		// Event log queries
-		eventHandler := handlers.NewEventHandler(s.logger)
+		eventHandler := handlers.NewEventHandler(s.eventService, s.logger)
 		events := v1.Group("/events")
 		{
 			events.GET("", eventHandler.ListEvents)
@@ -124,7 +156,7 @@ func (s *Server) setupRouter() {
 		}
 
 		// Webhook receiver
-		webhookHandler := handlers.NewWebhookHandler(s.logger)
+		webhookHandler := handlers.NewWebhookHandler(s.triggerService, s.eventService, s.logger)
 		v1.POST("/webhook/:trigger_id", webhookHandler.ReceiveWebhook)
 	}
 
@@ -185,6 +217,14 @@ func (s *Server) Serve() error {
 		return err
 	}
 
+	// Close Kafka publisher
+	if s.kafkaPublisher != nil {
+		if err := s.kafkaPublisher.Close(); err != nil {
+			s.logger.Error("failed to close Kafka publisher", zap.Error(err))
+		}
+	}
+
+	// Close database connection
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
 			s.logger.Error("failed to close database connection", zap.Error(err))

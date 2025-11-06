@@ -177,15 +177,6 @@ definitions:
         - inactive
         example: active
     type: object
-  WebhookPayload:
-    properties:
-      data:
-        additionalProperties: true
-        type: object
-      trigger_id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-    type: object
   github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse:
     properties:
       details: {}
@@ -269,97 +260,6 @@ info:
   title: Event Trigger Platform API
   version: "1.0"
 paths:
-  /api/v1/events:
-    get:
-      description: Retrieves event logs with filtering and pagination. By default
-        shows only active events (last 2 hours).
-      parameters:
-      - description: Filter by trigger ID
-        in: query
-        name: trigger_id
-        type: string
-      - default: active
-        description: Filter by retention status
-        enum:
-        - active
-        - archived
-        in: query
-        name: retention_status
-        type: string
-      - description: Filter by execution status
-        enum:
-        - success
-        - failure
-        in: query
-        name: execution_status
-        type: string
-      - description: Filter by event source
-        enum:
-        - api
-        - scheduled
-        - manual-test
-        in: query
-        name: source
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - default: 20
-        description: Items per page
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/EventLogListResponse'
-        "400":
-          description: Invalid query parameters
-          schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-      summary: List event logs
-      tags:
-      - Events
-  /api/v1/events/{id}:
-    get:
-      description: Retrieves details of a specific event log by ID, including full
-        payload and error message if failed
-      parameters:
-      - description: Event ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/EventLogResponse'
-        "404":
-          description: Event not found
-          schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-      summary: Get event log details
-      tags:
-      - Events
   /api/v1/triggers:
     get:
       description: Retrieves a list of triggers with optional filtering and pagination
@@ -558,46 +458,97 @@ paths:
       summary: Test a trigger (manual/test run)
       tags:
       - Triggers
-  /api/v1/webhook/{trigger_id}:
-    post:
-      consumes:
-      - application/json
-      description: Receives a payload from external systems, validates it against
-        the trigger's JSON schema, and fires the trigger
+  /events:
+    get:
+      description: Retrieves event logs with filtering and pagination. By default
+        shows only active events (last 2 hours).
       parameters:
-      - description: Trigger ID
-        in: path
+      - description: Filter by trigger ID
+        in: query
         name: trigger_id
-        required: true
         type: string
-      - description: Webhook payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/WebhookPayload'
+      - default: active
+        description: Filter by retention status
+        enum:
+        - active
+        - archived
+        in: query
+        name: retention_status
+        type: string
+      - description: Filter by execution status
+        enum:
+        - success
+        - failure
+        in: query
+        name: execution_status
+        type: string
+      - description: Filter by event source
+        enum:
+        - webhook
+        - scheduler
+        - manual-test
+        in: query
+        name: source
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
-        "202":
-          description: Webhook accepted and trigger queued
+        "200":
+          description: OK
           schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse'
+            $ref: '#/definitions/EventLogListResponse'
         "400":
-          description: Invalid payload or schema validation failed
-          schema:
-            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-        "404":
-          description: Trigger not found
+          description: Invalid query parameters
           schema:
             $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
             $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
-      summary: Receive webhook payload for API trigger
+      summary: List event logs
       tags:
-      - Webhooks
+      - Events
+  /events/{id}:
+    get:
+      description: Retrieves details of a specific event log by ID, including full
+        payload and error message if failed
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/EventLogResponse'
+        "404":
+          description: Event not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Get event log details
+      tags:
+      - Events
   /health:
     get:
       description: Returns the health status of the API service
@@ -624,6 +575,54 @@ paths:
       summary: Get platform metrics
       tags:
       - System
+  /webhook/{trigger_id}:
+    post:
+      consumes:
+      - application/json
+      description: Receives a payload from external systems, validates it against
+        the trigger's JSON schema, and fires the trigger
+      parameters:
+      - description: Trigger ID
+        in: path
+        name: trigger_id
+        required: true
+        type: string
+      - description: Webhook payload (validated against trigger's schema)
+        in: body
+        name: payload
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Webhook accepted and trigger queued
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload or schema validation failed
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "404":
+          description: Trigger not found
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_api_response.ErrorResponse'
+      summary: Receive webhook payload for webhook trigger
+      tags:
+      - Webhooks
 schemes:
 - http
 - https
