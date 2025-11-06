@@ -190,8 +190,16 @@ func (h *TriggerHandler) DeleteTrigger(c *gin.Context) {
 // @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /api/v1/triggers/{id}/test [post]
 func (h *TriggerHandler) TestTrigger(c *gin.Context) {
-	// TODO: Implement actual test trigger firing via worker queue.
-	response.NotFound(c, "trigger not found")
+	triggerID := c.Param("id")
+
+	h.logger.Info("test trigger requested",
+		zap.String("trigger_id", triggerID),
+		zap.String("request_id", response.GetRequestID(c)),
+	)
+
+	// This endpoint needs EventService - will be wired after server updates
+	// For now, return not implemented
+	response.Error(c, http.StatusNotImplemented, "test trigger endpoint not yet implemented", "EventService dependency not wired")
 }
 
 func (h *TriggerHandler) handleServiceError(c *gin.Context, err error, operation string) bool {
