@@ -166,8 +166,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
-                            "scheduled",
-                            "api"
+                            "webhook",
+                            "time_scheduled",
+                            "cron_scheduled"
                         ],
                         "type": "string",
                         "description": "Filter by trigger type",
@@ -224,7 +225,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a scheduled or API trigger with configuration. For API triggers, returns a webhook URL.",
+                "description": "Creates a trigger with configuration. Webhook triggers return a webhook URL.",
                 "consumes": [
                     "application/json"
                 ],
@@ -309,7 +310,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates an existing trigger's status or configuration. Only affects future trigger firings.",
+                "description": "Updates an existing trigger's metadata or configuration. Only affects future trigger firings.",
                 "consumes": [
                     "application/json"
                 ],
@@ -548,23 +549,29 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "config",
+                "name",
                 "type"
             ],
             "properties": {
                 "config": {
                     "type": "object"
                 },
+                "name": {
+                    "type": "string",
+                    "example": "Daily metrics push"
+                },
                 "type": {
                     "enum": [
-                        "scheduled",
-                        "api"
+                        "webhook",
+                        "time_scheduled",
+                        "cron_scheduled"
                     ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType"
                         }
                     ],
-                    "example": "scheduled"
+                    "example": "time_scheduled"
                 }
             }
         },
@@ -749,7 +756,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
-                "next_fire_time": {
+                "name": {
+                    "type": "string",
+                    "example": "Daily metrics push"
+                },
+                "next_scheduled_run": {
                     "type": "string",
                     "example": "2025-11-05T15:00:00Z"
                 },
@@ -767,7 +778,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType"
                         }
                     ],
-                    "example": "scheduled"
+                    "example": "time_scheduled"
                 },
                 "updated_at": {
                     "type": "string",
@@ -784,6 +795,10 @@ const docTemplate = `{
             "properties": {
                 "config": {
                     "type": "object"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Daily metrics push"
                 },
                 "status": {
                     "enum": [
@@ -836,13 +851,13 @@ const docTemplate = `{
         "github_com_dhima_event-trigger-platform_internal_models.EventSource": {
             "type": "string",
             "enum": [
-                "api",
-                "scheduled",
+                "webhook",
+                "scheduler",
                 "manual-test"
             ],
             "x-enum-varnames": [
-                "EventSourceAPI",
-                "EventSourceScheduled",
+                "EventSourceWebhook",
+                "EventSourceScheduler",
                 "EventSourceManualTest"
             ]
         },
@@ -884,12 +899,14 @@ const docTemplate = `{
         "github_com_dhima_event-trigger-platform_internal_models.TriggerType": {
             "type": "string",
             "enum": [
-                "scheduled",
-                "api"
+                "webhook",
+                "time_scheduled",
+                "cron_scheduled"
             ],
             "x-enum-varnames": [
-                "TriggerTypeScheduled",
-                "TriggerTypeAPI"
+                "TriggerTypeWebhook",
+                "TriggerTypeTimeScheduled",
+                "TriggerTypeCronScheduled"
             ]
         }
     },

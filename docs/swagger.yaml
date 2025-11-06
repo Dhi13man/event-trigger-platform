@@ -4,15 +4,20 @@ definitions:
     properties:
       config:
         type: object
+      name:
+        example: Daily metrics push
+        type: string
       type:
         allOf:
         - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
         enum:
-        - scheduled
-        - api
-        example: scheduled
+        - webhook
+        - time_scheduled
+        - cron_scheduled
+        example: time_scheduled
     required:
     - config
+    - name
     - type
     type: object
   EventLogListResponse:
@@ -136,7 +141,10 @@ definitions:
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
-      next_fire_time:
+      name:
+        example: Daily metrics push
+        type: string
+      next_scheduled_run:
         example: "2025-11-05T15:00:00Z"
         type: string
       status:
@@ -146,7 +154,7 @@ definitions:
       type:
         allOf:
         - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
-        example: scheduled
+        example: time_scheduled
       updated_at:
         example: "2025-11-05T10:00:00Z"
         type: string
@@ -158,6 +166,9 @@ definitions:
     properties:
       config:
         type: object
+      name:
+        example: Daily metrics push
+        type: string
       status:
         allOf:
         - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerStatus'
@@ -191,13 +202,13 @@ definitions:
     type: object
   github_com_dhima_event-trigger-platform_internal_models.EventSource:
     enum:
-    - api
-    - scheduled
+    - webhook
+    - scheduler
     - manual-test
     type: string
     x-enum-varnames:
-    - EventSourceAPI
-    - EventSourceScheduled
+    - EventSourceWebhook
+    - EventSourceScheduler
     - EventSourceManualTest
   github_com_dhima_event-trigger-platform_internal_models.ExecutionStatus:
     enum:
@@ -227,12 +238,14 @@ definitions:
     - TriggerStatusInactive
   github_com_dhima_event-trigger-platform_internal_models.TriggerType:
     enum:
-    - scheduled
-    - api
+    - webhook
+    - time_scheduled
+    - cron_scheduled
     type: string
     x-enum-varnames:
-    - TriggerTypeScheduled
-    - TriggerTypeAPI
+    - TriggerTypeWebhook
+    - TriggerTypeTimeScheduled
+    - TriggerTypeCronScheduled
 host: localhost:8080
 info:
   contact:
@@ -353,8 +366,9 @@ paths:
       parameters:
       - description: Filter by trigger type
         enum:
-        - scheduled
-        - api
+        - webhook
+        - time_scheduled
+        - cron_scheduled
         in: query
         name: type
         type: string
@@ -399,8 +413,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a scheduled or API trigger with configuration. For API
-        triggers, returns a webhook URL.
+      description: Creates a trigger with configuration. Webhook triggers return a
+        webhook URL.
       parameters:
       - description: Trigger configuration
         in: body
@@ -481,7 +495,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates an existing trigger's status or configuration. Only affects
+      description: Updates an existing trigger's metadata or configuration. Only affects
         future trigger firings.
       parameters:
       - description: Trigger ID
