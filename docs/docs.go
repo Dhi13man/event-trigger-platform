@@ -637,7 +637,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_models.EventSource"
                         }
                     ],
-                    "example": "scheduled"
+                    "example": "scheduler"
                 },
                 "trigger_id": {
                     "type": "string",
@@ -649,7 +649,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType"
                         }
                     ],
-                    "example": "scheduled"
+                    "example": "time_scheduled"
                 }
             }
         },

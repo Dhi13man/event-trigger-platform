@@ -59,14 +59,14 @@ definitions:
       source:
         allOf:
         - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.EventSource'
-        example: scheduled
+        example: scheduler
       trigger_id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       trigger_type:
         allOf:
         - $ref: '#/definitions/github_com_dhima_event-trigger-platform_internal_models.TriggerType'
-        example: scheduled
+        example: time_scheduled
     type: object
   HealthResponse:
     properties:

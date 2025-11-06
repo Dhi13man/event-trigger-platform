@@ -877,6 +877,10 @@ Example:
 - Improvement: Implement circuit breaker for failing endpoints
 - Improvement: Add trigger tagging/categorization
 
+**Performance & Scalability:**
+
+- **Redis caching for scheduler trigger reads**: Current implementation uses JOIN queries (`trigger_schedules` + `triggers` table) which is fine for monolithic/small-scale deployments. At scale (thousands of triggers), scheduler polling every 5s with JOINs could become a bottleneck. Consider Redis cache-aside pattern: cache trigger config by `trigger_id` with 5-10min TTL, invalidate on UPDATE/DELETE. Monitor database query latencies (p95/p99) to determine when caching is needed. Alternative: Use read replicas before adding caching layer complexity.
+
 ### 8. Tools/Resources Used
 
 Give credit to:

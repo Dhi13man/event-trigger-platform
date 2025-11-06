@@ -50,10 +50,10 @@ type EventLog struct {
 type EventLogResponse struct {
 	ID              string          `json:"id" example:"660e8400-e29b-41d4-a716-446655440000"`
 	TriggerID       *string         `json:"trigger_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
-	TriggerType     TriggerType     `json:"trigger_type" example:"scheduled"`
+	TriggerType     TriggerType     `json:"trigger_type" example:"time_scheduled"`
 	FiredAt         time.Time       `json:"fired_at" example:"2025-11-05T10:30:00Z"`
 	Payload         json.RawMessage `json:"payload,omitempty" swaggertype:"object"`
-	Source          EventSource     `json:"source" example:"scheduled"`
+	Source          EventSource     `json:"source" example:"scheduler"`
 	ExecutionStatus ExecutionStatus `json:"execution_status" example:"success"`
 	ErrorMessage    *string         `json:"error_message,omitempty" example:"connection timeout"`
 	RetentionStatus RetentionStatus `json:"retention_status" example:"active"`
@@ -66,7 +66,7 @@ type ListEventsQuery struct {
 	TriggerID       string `form:"trigger_id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	RetentionStatus string `form:"retention_status" binding:"omitempty,oneof=active archived" example:"active"`
 	ExecutionStatus string `form:"execution_status" binding:"omitempty,oneof=success failure" example:"success"`
-	Source          string `form:"source" binding:"omitempty,oneof=api scheduled manual-test" example:"scheduled"`
+	Source          string `form:"source" binding:"omitempty,oneof=webhook scheduler manual-test" example:"scheduler"`
 	Page            int    `form:"page" binding:"omitempty,min=1" example:"1"`
 	Limit           int    `form:"limit" binding:"omitempty,min=1,max=100" example:"20"`
 } // @name ListEventsQuery

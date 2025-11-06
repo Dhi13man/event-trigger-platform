@@ -167,12 +167,10 @@ func (s *Service) UpdateTrigger(ctx context.Context, triggerID string, req model
 		}
 	}
 
+	// Only update schedules when config changes (not on status changes)
+	// The scheduler will check trigger.status before firing, so we don't need to cancel schedules
 	if schedule != nil {
 		if err := s.store.UpsertTriggerSchedule(ctx, current.ID, schedule); err != nil {
-			return nil, err
-		}
-	} else if req.Status != nil && *req.Status == models.TriggerStatusInactive {
-		if err := s.store.UpsertTriggerSchedule(ctx, current.ID, nil); err != nil {
 			return nil, err
 		}
 	}
