@@ -4,28 +4,43 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/dhima/event-trigger-platform/internal/models"
 	"github.com/dhima/event-trigger-platform/internal/storage"
-	"github.com/dhima/event-trigger-platform/platform/events"
+	"github.com/dhima/event-trigger-platform/pkg/clock"
+	platformEvents "github.com/dhima/event-trigger-platform/platform/events"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // Service provides business logic for event handling and firing triggers.
 type Service struct {
-	db        *storage.MySQLClient
-	publisher *events.Publisher
+	db        EventLogStore
+	publisher EventPublisher
 	logger    *zap.Logger
+	clock     clock.Clock
 }
 
 // NewService creates a new EventService instance.
-func NewService(db *storage.MySQLClient, publisher *events.Publisher, logger *zap.Logger) *Service {
+func NewService(db *storage.MySQLClient, publisher *platformEvents.Publisher, logger *zap.Logger) *Service {
 	return &Service{
 		db:        db,
 		publisher: publisher,
 		logger:    logger,
+		clock:     clock.RealClock{},
+	}
+}
+
+// NewServiceWithClock allows injecting interfaces and a custom clock for deterministic tests.
+func NewServiceWithClock(db EventLogStore, publisher EventPublisher, logger *zap.Logger, clk clock.Clock) *Service {
+	if clk == nil {
+		clk = clock.RealClock{}
+	}
+	return &Service{
+		db:        db,
+		publisher: publisher,
+		logger:    logger,
+		clock:     clk,
 	}
 }
 
@@ -56,13 +71,13 @@ func (s *Service) FireTrigger(ctx context.Context, trigger *models.Trigger, sour
 		ID:              eventID,
 		TriggerID:       &trigger.ID,
 		TriggerType:     trigger.Type,
-		FiredAt:         time.Now().UTC(),
+		FiredAt:         s.clock.Now().UTC(),
 		Payload:         payloadBytes,
 		Source:          source,
 		ExecutionStatus: models.ExecutionStatusSuccess,
 		RetentionStatus: models.RetentionStatusActive,
 		IsTestRun:       isTestRun,
-		CreatedAt:       time.Now().UTC(),
+		CreatedAt:       s.clock.Now().UTC(),
 	}
 
 	// For pure manual test runs without persisted trigger, trigger_id can be nil
@@ -87,7 +102,7 @@ func (s *Service) FireTrigger(ctx context.Context, trigger *models.Trigger, sour
 		zap.Bool("is_test_run", isTestRun))
 
 	// Publish to Kafka (outside transaction for at-least-once semantics)
-	triggerEvent := events.TriggerEvent{
+	triggerEvent := platformEvents.TriggerEvent{
 		EventID:   eventID,
 		TriggerID: trigger.ID,
 		Type:      string(trigger.Type),
