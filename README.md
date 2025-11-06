@@ -814,7 +814,15 @@ for {
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for detailed information on:
+
+- Setting up your development environment
+- Coding standards and best practices
+- Testing requirements
+- Pull request process
+- Code review guidelines
+
+For quick contributions:
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
@@ -822,13 +830,7 @@ Contributions are welcome! Please follow these guidelines:
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-### Code Standards
-
-- Follow Go best practices and idioms
-- Write tests for new features
-- Update documentation (README, CLAUDE.md, Swagger)
-- Use `gofmt` and `golangci-lint`
-- Keep commits atomic and well-described
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for complete guidelines.
 
 ## License
 
