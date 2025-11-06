@@ -66,7 +66,7 @@ A production-ready, horizontally scalable event trigger management platform buil
 │  • Polls every 5s     • Fires triggers    • Creates next runs   │
 │  • Status validation  • Kafka publish     • Marks completed     │
 └─────────────────────────────────────────────────────────────────┘
-```text
+```
 
 ### Design Philosophy
 
@@ -100,7 +100,7 @@ curl http://localhost:8080/health
 
 # View Swagger documentation
 open http://localhost:8080/swagger/index.html
-```text
+```
 
 **That's it!** The platform is now running with:
 
@@ -138,7 +138,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
 #   "webhook_url": "http://localhost:8080/api/v1/webhook/550e8400-...",
 #   ...
 # }
-```text
+```
 
 ## API Documentation
 
@@ -205,7 +205,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
       }
     }
   }'
-```text
+```
 
 **Response:**
 
@@ -220,7 +220,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
   "created_at": "2025-11-06T10:00:00Z",
   "updated_at": "2025-11-06T10:00:00Z"
 }
-```text
+```
 
 #### 2. Create a CRON-Scheduled Trigger
 
@@ -247,7 +247,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
       }
     }
   }'
-```text
+```
 
 **Common CRON Expressions:**
 
@@ -286,7 +286,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
       }
     }
   }'
-```text
+```
 
 **Response includes webhook URL:**
 
@@ -299,7 +299,7 @@ curl -X POST http://localhost:8080/api/v1/triggers \
   "webhook_url": "http://localhost:8080/api/v1/webhook/abc123...",
   ...
 }
-```text
+```
 
 **Fire the webhook:**
 
@@ -311,7 +311,7 @@ curl -X POST http://localhost:8080/api/v1/webhook/abc123... \
     "action": "create",
     "timestamp": "2025-11-06T10:30:00Z"
   }'
-```text
+```
 
 #### 4. List Triggers with Filters
 
@@ -321,7 +321,7 @@ curl "http://localhost:8080/api/v1/triggers?type=cron_scheduled&status=active&pa
 
 # List all webhook triggers
 curl "http://localhost:8080/api/v1/triggers?type=webhook"
-```text
+```
 
 **Response:**
 
@@ -344,7 +344,7 @@ curl "http://localhost:8080/api/v1/triggers?type=webhook"
     "total_records": 55
   }
 }
-```text
+```
 
 #### 5. Update Trigger
 
@@ -367,7 +367,7 @@ curl -X PUT http://localhost:8080/api/v1/triggers/550e8400-... \
       "http_method": "POST"
     }
   }'
-```text
+```
 
 #### 6. Query Event Logs
 
@@ -380,7 +380,7 @@ curl "http://localhost:8080/api/v1/events?source=scheduler&execution_status=succ
 
 # List archived events (2-48 hours old)
 curl "http://localhost:8080/api/v1/events?retention_status=archived&page=1&limit=50"
-```text
+```
 
 #### 7. Manual Test Run
 
@@ -389,7 +389,7 @@ curl "http://localhost:8080/api/v1/events?retention_status=archived&page=1&limit
 curl -X POST http://localhost:8080/api/v1/triggers/550e8400-...test
 
 # Event log will have is_test_run=true
-```text
+```
 
 #### 8. Health Check & Metrics
 
@@ -409,7 +409,7 @@ curl http://localhost:8080/health
 
 # Get metrics
 curl http://localhost:8080/metrics
-```text
+```
 
 ## Configuration
 
@@ -446,7 +446,7 @@ SCHEDULER_INTERVAL=5s
 
 # CORS
 CORS_ORIGINS=https://app.example.com,https://admin.example.com
-```text
+```
 
 ## Database Schema
 
@@ -468,7 +468,7 @@ CREATE TABLE triggers (
     INDEX idx_status (status),
     INDEX idx_type (type)
 );
-```text
+```
 
 #### `trigger_schedules`
 
@@ -488,7 +488,7 @@ CREATE TABLE trigger_schedules (
     INDEX idx_trigger_id (trigger_id),
     FOREIGN KEY (trigger_id) REFERENCES triggers(id) ON DELETE CASCADE
 );
-```text
+```
 
 #### `event_logs`
 
@@ -512,7 +512,7 @@ CREATE TABLE event_logs (
     INDEX idx_retention_status (retention_status),
     FOREIGN KEY (trigger_id) REFERENCES triggers(id) ON DELETE SET NULL
 );
-```text
+```
 
 ### Retention Lifecycle
 
@@ -547,7 +547,7 @@ go run ./cmd/api
 
 # In another terminal, start scheduler
 go run ./cmd/scheduler
-```text
+```
 
 ### Generate Swagger Docs
 
@@ -557,7 +557,7 @@ go install github.com/swaggo/swag/cmd/swag@latest
 
 # Generate docs
 swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal
-```text
+```
 
 ### Build Binaries
 
@@ -568,11 +568,11 @@ make build
 # Or build individually
 go build -o bin/api ./cmd/api
 go build -o bin/scheduler ./cmd/scheduler
-```text
+```
 
 ### Project Structure
 
-```text
+```
 event-trigger-platform/
 ├── cmd/
 │   ├── api/              # API server entrypoint
@@ -602,7 +602,7 @@ event-trigger-platform/
 ├── go.mod
 ├── CLAUDE.md            # AI agent instructions
 └── README.md
-```text
+```
 
 ## Testing
 
@@ -620,7 +620,7 @@ go test ./internal/triggers/...
 
 # Run integration tests (when implemented)
 go test -tags=integration ./...
-```text
+```
 
 ### Test Categories (Planned)
 
@@ -647,7 +647,7 @@ docker-compose logs -f api scheduler
 
 # Stop all services
 docker-compose down
-```text
+```
 
 ### Kubernetes (Large Scale)
 
@@ -713,7 +713,7 @@ Coming soon: Helm charts and K8s manifests for production deployment.
        │  └─ Miss: Query MySQL + cache result (TTL: 5-10min)
        │
        └─ On UPDATE/DELETE: Invalidate cache
-```text
+```
 
 **Benefits**:
 
@@ -743,7 +743,7 @@ for {
     // Poll and process schedules
     processSchedules()
 }
-```text
+```
 
 #### 3. Horizontal Scaling
 
