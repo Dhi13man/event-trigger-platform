@@ -951,7 +951,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- **Documentation**: [CLAUDE.md](CLAUDE.md) (detailed technical docs)
 - **Issues**: [GitHub Issues](https://github.com/Dhi13man/event-trigger-platform/issues)
 - **Swagger UI**: <http://localhost:8080/swagger/index.html> (when running)
 
