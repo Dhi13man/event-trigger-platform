@@ -23,7 +23,7 @@ This project adheres to a code of conduct that all contributors are expected to 
 Before you begin contributing, please:
 
 1. **Read the README**: Familiarize yourself with the project by reading the [README.md](README.md)
-2. **Check existing issues**: Browse [open issues](https://github.com/Dhi13man/event-trigger-platform/issues) to see if someone is already working on what you have in mind
+2. **Check existing issues**: Browse [open issues](../../issues) to see if someone is already working on what you have in mind
 3. **Open a new issue**: If you're planning a significant change, open an issue first to discuss it with the maintainers
 
 ## Development Setup
@@ -189,7 +189,7 @@ We welcome various types of contributions:
 
 ### Writing Tests
 
-- **Test Coverage**: Aim for at least 70% code coverage for new code
+- **Test Coverage**: Aim for at least 70% code coverage for new code (this is a project guideline that balances quality with development velocity)
 - **Test Files**: Place test files alongside the code they test (`*_test.go`)
 - **Table-Driven Tests**: Use table-driven tests for multiple test cases
 - **Test Names**: Use descriptive test names that explain what is being tested
@@ -328,8 +328,8 @@ test(api): add integration tests for trigger endpoints
 ### Getting Help
 
 - **Documentation**: Start with the [README.md](README.md)
-- **Issues**: Search [existing issues](https://github.com/Dhi13man/event-trigger-platform/issues)
-- **Discussions**: Use [GitHub Discussions](https://github.com/Dhi13man/event-trigger-platform/discussions) for questions
+- **Issues**: Search [existing issues](../../issues)
+- **Discussions**: Use [GitHub Discussions](../../discussions) for questions
 
 ### Reporting Bugs
 
