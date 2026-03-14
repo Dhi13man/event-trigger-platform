@@ -10,20 +10,28 @@ import (
 
 	"github.com/dhima/event-trigger-platform/internal/models"
 	"github.com/dhima/event-trigger-platform/internal/storage"
+	"github.com/dhima/event-trigger-platform/pkg/clock"
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 )
 
 // Service encapsulates trigger business logic.
 type Service struct {
-	store *storage.MySQLClient
+	store TriggerStore
+	clock clock.Clock
 }
 
 // NewService creates a trigger service.
 func NewService(store *storage.MySQLClient) *Service {
-	return &Service{
-		store: store,
+	return &Service{store: store, clock: clock.RealClock{}}
+}
+
+// NewServiceWithClock allows injecting a custom clock and store (for testing).
+func NewServiceWithClock(store TriggerStore, clk clock.Clock) *Service {
+	if clk == nil {
+		clk = clock.RealClock{}
 	}
+	return &Service{store: store, clock: clk}
 }
 
 // CreateTrigger validates config, persists trigger, and schedules first run if required.
@@ -222,7 +230,7 @@ func (s *Service) prepareTimeSchedule(triggerID string, config json.RawMessage) 
 		return nil, nil, fmt.Errorf("invalid run_at: %w", err)
 	}
 
-	if runAt.Before(time.Now().Add(-1 * time.Minute)) {
+	if runAt.Before(s.clock.Now().Add(-1 * time.Minute)) {
 		return nil, nil, NewValidationError("run_at must be in the future")
 	}
 
@@ -275,7 +283,7 @@ func (s *Service) prepareCronSchedule(triggerID string, config json.RawMessage) 
 		return nil, nil, fmt.Errorf("invalid cron expression: %w", err)
 	}
 
-	nextRun := schedule.Next(time.Now().In(loc)).UTC()
+	nextRun := schedule.Next(s.clock.Now().In(loc)).UTC()
 	normalized, err := json.Marshal(payload)
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal cron_scheduled config: %w", err)

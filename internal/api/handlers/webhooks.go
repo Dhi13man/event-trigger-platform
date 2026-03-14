@@ -1,16 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/dhima/event-trigger-platform/internal/api/response"
-	"github.com/dhima/event-trigger-platform/internal/events"
 	"github.com/dhima/event-trigger-platform/internal/logging"
 	"github.com/dhima/event-trigger-platform/internal/models"
 	"github.com/dhima/event-trigger-platform/internal/storage"
-	"github.com/dhima/event-trigger-platform/internal/triggers"
 	"github.com/gin-gonic/gin"
 	"github.com/xeipuuv/gojsonschema"
 	"go.uber.org/zap"
@@ -18,18 +17,28 @@ import (
 
 // WebhookHandler handles webhook receiver requests for API triggers.
 type WebhookHandler struct {
-	triggerService *triggers.Service
-	eventService   *events.Service
+	triggerService TriggerReader
+	eventService   EventFiringService
 	logger         logging.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler.
-func NewWebhookHandler(triggerService *triggers.Service, eventService *events.Service, logger logging.Logger) *WebhookHandler {
+func NewWebhookHandler(triggerService TriggerReader, eventService EventFiringService, logger logging.Logger) *WebhookHandler {
 	return &WebhookHandler{
 		triggerService: triggerService,
 		eventService:   eventService,
 		logger:         logger.With(zap.String("handler", "webhook")),
 	}
+}
+
+// TriggerReader exposes GetTrigger for webhook validation.
+type TriggerReader interface {
+	GetTrigger(ctx context.Context, triggerID string) (*models.TriggerResponse, error)
+}
+
+// EventFiringService exposes FireTrigger used by webhook handler.
+type EventFiringService interface {
+	FireTrigger(ctx context.Context, trigger *models.Trigger, source models.EventSource, payload map[string]interface{}, isTestRun bool) (string, error)
 }
 
 // ReceiveWebhook godoc

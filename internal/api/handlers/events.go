@@ -1,8 +1,9 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/dhima/event-trigger-platform/internal/api/response"
-	"github.com/dhima/event-trigger-platform/internal/events"
 	"github.com/dhima/event-trigger-platform/internal/logging"
 	"github.com/dhima/event-trigger-platform/internal/models"
 	"github.com/gin-gonic/gin"
@@ -11,12 +12,18 @@ import (
 
 // EventHandler handles event log query requests.
 type EventHandler struct {
-	eventService *events.Service
+	eventService EventQueryService
 	logger       logging.Logger
 }
 
+// EventQueryService defines query methods used by the handler.
+type EventQueryService interface {
+	QueryEvents(ctx context.Context, query models.ListEventsQuery) ([]models.EventLog, models.Pagination, error)
+	GetEvent(ctx context.Context, eventID string) (*models.EventLog, error)
+}
+
 // NewEventHandler creates a new event handler.
-func NewEventHandler(eventService *events.Service, logger logging.Logger) *EventHandler {
+func NewEventHandler(eventService EventQueryService, logger logging.Logger) *EventHandler {
 	return &EventHandler{
 		eventService: eventService,
 		logger:       logger.With(zap.String("handler", "event")),
