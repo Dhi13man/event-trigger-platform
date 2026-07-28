@@ -15,6 +15,8 @@ import (
 // ErrTriggerNotFound is returned when a trigger is not found.
 var ErrTriggerNotFound = errors.New("trigger not found")
 
+const maxTriggerUpdateFields = 3
+
 // CreateTrigger inserts a trigger (and optional first schedule) atomically.
 func (c *MySQLClient) CreateTrigger(ctx context.Context, trigger *models.Trigger, schedule *models.TriggerSchedule) error {
 	tx, err := c.db.BeginTx(ctx, nil)
@@ -170,6 +172,16 @@ func (c *MySQLClient) ListTriggers(ctx context.Context, query models.ListTrigger
 func (c *MySQLClient) UpdateTrigger(ctx context.Context, triggerID string, updates map[string]interface{}) error {
 	if len(updates) == 0 {
 		return nil
+	}
+	if len(updates) > maxTriggerUpdateFields {
+		return fmt.Errorf("update trigger: too many fields: %d (maximum %d)", len(updates), maxTriggerUpdateFields)
+	}
+	for column := range updates {
+		switch column {
+		case "config", "name", "status":
+		default:
+			return fmt.Errorf("update trigger: unsupported field %q", column)
+		}
 	}
 
 	setParts := make([]string, 0, len(updates)+1)

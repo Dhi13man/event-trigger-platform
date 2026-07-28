@@ -2,7 +2,7 @@
 # Optimized for production with minimal image size and security best practices
 
 # Stage 1: Builder
-FROM golang:1.22.3-alpine AS builder
+FROM golang:1.25.12-alpine3.24 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -67,4 +67,3 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 USER appuser
 
 ENTRYPOINT ["/app/scheduler"]
-

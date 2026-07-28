@@ -91,19 +91,7 @@ func (h *EventHandler) ListEvents(c *gin.Context) {
 	// Convert to response format
 	eventResponses := make([]models.EventLogResponse, len(eventLogs))
 	for i, event := range eventLogs {
-		eventResponses[i] = models.EventLogResponse{
-			ID:              event.ID,
-			TriggerID:       event.TriggerID,
-			TriggerType:     event.TriggerType,
-			FiredAt:         event.FiredAt,
-			Payload:         event.Payload,
-			Source:          event.Source,
-			ExecutionStatus: event.ExecutionStatus,
-			ErrorMessage:    event.ErrorMessage,
-			RetentionStatus: event.RetentionStatus,
-			IsTestRun:       event.IsTestRun,
-			CreatedAt:       event.CreatedAt,
-		}
+		eventResponses[i] = models.EventLogResponse(event)
 	}
 
 	result := models.EventLogListResponse{
