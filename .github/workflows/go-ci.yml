@@ -80,6 +80,11 @@ jobs:
       - name: Build commands
         run: go build ./...
 
+      - name: Build container image
+        env:
+          IMAGE_TAG: event-trigger-platform:${{ github.sha }}
+        run: docker build --tag "$IMAGE_TAG" .
+
       - name: Scan reachable vulnerabilities
         run: |
           go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
