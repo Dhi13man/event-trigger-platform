@@ -42,6 +42,7 @@ func TestListEvents_DefaultsActive(t *testing.T) {
 }
 
 func TestListEvents_WhenServiceReturnsEvent_ThenPreservesEventFields(t *testing.T) {
+	// Arrange
 	gin.SetMode(gin.TestMode)
 	triggerID := "trigger-123"
 	errorMessage := "delivery failed"
@@ -64,10 +65,12 @@ func TestListEvents_WhenServiceReturnsEvent_ThenPreservesEventFields(t *testing.
 	router := gin.New()
 	router.GET("/api/v1/events", handler.ListEvents)
 
+	// Act
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/events", nil)
 	router.ServeHTTP(recorder, request)
 
+	// Assert
 	require.Equal(t, http.StatusOK, recorder.Code)
 	var body struct {
 		Data models.EventLogListResponse `json:"data"`

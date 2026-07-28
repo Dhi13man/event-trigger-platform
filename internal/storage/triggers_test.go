@@ -10,6 +10,7 @@ import (
 func TestMySQLClient_UpdateTrigger_WhenUpdatesAreInvalid_ThenReturnsError(t *testing.T) {
 	t.Parallel()
 
+	// Arrange
 	tests := []struct {
 		name    string
 		updates map[string]interface{}
@@ -37,10 +38,13 @@ func TestMySQLClient_UpdateTrigger_WhenUpdatesAreInvalid_ThenReturnsError(t *tes
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			// Arrange
 			client := &MySQLClient{}
 
+			// Act
 			err := client.UpdateTrigger(context.Background(), "trigger-123", tt.updates)
 
+			// Assert
 			assert.ErrorContains(t, err, tt.wantErr)
 		})
 	}
@@ -48,9 +52,12 @@ func TestMySQLClient_UpdateTrigger_WhenUpdatesAreInvalid_ThenReturnsError(t *tes
 
 func TestMySQLClient_UpdateTrigger_WhenUpdatesAreEmpty_ThenReturnsNoError(t *testing.T) {
 	t.Parallel()
+	// Arrange
 	client := &MySQLClient{}
 
+	// Act
 	err := client.UpdateTrigger(context.Background(), "trigger-123", nil)
 
+	// Assert
 	assert.NoError(t, err)
 }

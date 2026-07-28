@@ -46,7 +46,8 @@ func (f *fakeEventFiring) FireTrigger(ctx context.Context, trigger *models.Trigg
 	return f.id, f.err
 }
 
-func TestWebhookFlow_AcceptsAndQueues(t *testing.T) {
+func TestReceiveWebhook_WhenTriggerIsActive_ThenQueuesEvent(t *testing.T) {
+	// Arrange
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, time.July, 28, 9, 30, 0, 0, time.UTC)
 	cfgBytes, err := json.Marshal(map[string]any{"endpoint": "https://e"})
@@ -61,11 +62,13 @@ func TestWebhookFlow_AcceptsAndQueues(t *testing.T) {
 	payload := map[string]any{"k": "v"}
 	b, err := json.Marshal(payload)
 	require.NoError(t, err)
+	// Act
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/webhook/t1", bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
+	// Assert
 	require.Equal(t, http.StatusAccepted, w.Code)
 	require.Equal(t, 1, firer.calls)
 	require.Equal(t, "t1", firer.trigger.ID)
