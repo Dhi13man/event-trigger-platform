@@ -217,18 +217,17 @@ func TestZapLogger_With_WhenCalledWithFields_ThenReturnsLoggerWithFields(t *test
 	childLogger.Info("test message")
 }
 
-func TestZapLogger_Sync_WhenCalled_ThenReturnsNoError(t *testing.T) {
+func TestZapLogger_Sync_WhenCalled_ThenDoesNotPanic(t *testing.T) {
 	// Arrange
 	logger, err := NewProductionLogger()
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	// Act
-	err = logger.Sync()
-
-	// Assert - error may occur on stderr sync, which is acceptable
-	// We just verify it doesn't panic
+	// Act & Assert
+	if syncErr := logger.Sync(); syncErr != nil {
+		t.Logf("logger sync returned a platform-specific error: %v", syncErr)
+	}
 }
 
 func TestNoOpLogger_AllMethods_WhenCalled_ThenDoNothing(t *testing.T) {

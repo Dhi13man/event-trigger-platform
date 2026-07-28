@@ -153,4 +153,3 @@ func TestProcessSchedules_BatchProcessing(t *testing.T) {
 	}
 	assert.Equal(t, 3, completedCount)
 }
-
