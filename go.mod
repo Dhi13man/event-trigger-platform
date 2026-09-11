@@ -2,7 +2,7 @@ module github.com/dhima/event-trigger-platform
 
 go 1.25.0
 
-toolchain go1.25.12
+toolchain go1.25.13
 
 require (
 	github.com/gin-contrib/cors v1.7.6
