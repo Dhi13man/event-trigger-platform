@@ -2,7 +2,7 @@
 # Optimized for production with minimal image size and security best practices
 
 # Stage 1: Builder
-FROM golang:1.26.9-alpine3.24 AS builder
+FROM golang:1.26.10-alpine3.24 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
